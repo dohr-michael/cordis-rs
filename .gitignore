@@ -4,3 +4,4 @@
 .DS_Store
 /.cargo-home/
 /.scratch/
+/.codegraph/
