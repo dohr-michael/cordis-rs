@@ -6,7 +6,7 @@ Cordis v3 是面向长期运行、插件化 Rust 应用的类型化 runtime。�
 
 ## 当前状态
 
-`v3` 分支是下一代主线的 staging branch。现有 `0.6.x` 实现保留在 `legacy/0.6` 维护分支，只接受关键 bug 和安全修复。v3 准备完成后会成为默认 `main`。
+Cordis v3 现已成为默认 `main` 主线。现有 `0.6.x` 实现保留在 `legacy/0.6` 维护分支，只接受关键 bug 和安全修复。
 
 ## 安装
 
