@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_core::DispatchMode`
+ --> tests/ui/fail/issue33_removed_dispatch_mode_names.rs:1:5
+  |
+1 | use cordis_core::DispatchMode;
+  |     ^^^^^^^^^^^^^------------
+  |                  |
+  |                  no `DispatchMode` in the root

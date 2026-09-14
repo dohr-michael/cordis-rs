@@ -1,0 +1,74 @@
+error[E0616]: field `resolve_key` of struct `PluginRequest` is private
+ --> tests/ui-resolver/fail/request_representation.rs:3:21
+  |
+3 |     let _ = request.resolve_key;
+  |                     ^^^^^^^^^^^ private field
+  |
+help: a method `resolve_key` also exists, call it with parentheses
+  |
+3 |     let _ = request.resolve_key();
+  |                                ++
+
+error[E0616]: field `config` of struct `PluginRequest` is private
+ --> tests/ui-resolver/fail/request_representation.rs:4:21
+  |
+4 |     let _ = request.config;
+  |                     ^^^^^^ private field
+  |
+help: a method `config` also exists, call it with parentheses
+  |
+4 |     let _ = request.config();
+  |                           ++
+
+error[E0616]: field `inject` of struct `PluginRequest` is private
+ --> tests/ui-resolver/fail/request_representation.rs:5:21
+  |
+5 |     let _ = request.inject;
+  |                     ^^^^^^ private field
+  |
+help: a method `inject` also exists, call it with parentheses
+  |
+5 |     let _ = request.inject();
+  |                           ++
+
+error[E0599]: no method named `entry_id` found for struct `PluginRequest<'a>` in the current scope
+ --> tests/ui-resolver/fail/request_representation.rs:6:21
+  |
+6 |     let _ = request.entry_id();
+  |                     ^^^^^^^^ method not found in `PluginRequest<'_>`
+
+error[E0599]: no method named `name` found for struct `PluginRequest<'a>` in the current scope
+ --> tests/ui-resolver/fail/request_representation.rs:7:21
+  |
+7 |     let _ = request.name();
+  |                     ^^^^ method not found in `PluginRequest<'_>`
+
+error[E0599]: no method named `isolate` found for struct `PluginRequest<'a>` in the current scope
+ --> tests/ui-resolver/fail/request_representation.rs:8:21
+  |
+8 |     let _ = request.isolate();
+  |                     ^^^^^^^ method not found in `PluginRequest<'_>`
+
+error[E0599]: no method named `context` found for struct `PluginRequest<'a>` in the current scope
+ --> tests/ui-resolver/fail/request_representation.rs:9:21
+  |
+9 |     let _ = request.context();
+  |                     ^^^^^^^ method not found in `PluginRequest<'_>`
+
+error[E0599]: no method named `scope` found for struct `PluginRequest<'a>` in the current scope
+  --> tests/ui-resolver/fail/request_representation.rs:10:21
+   |
+10 |     let _ = request.scope();
+   |                     ^^^^^ method not found in `PluginRequest<'_>`
+
+error[E0599]: no method named `realm` found for struct `PluginRequest<'a>` in the current scope
+  --> tests/ui-resolver/fail/request_representation.rs:11:21
+   |
+11 |     let _ = request.realm();
+   |                     ^^^^^ method not found in `PluginRequest<'_>`
+
+error[E0599]: no method named `parent` found for struct `PluginRequest<'a>` in the current scope
+  --> tests/ui-resolver/fail/request_representation.rs:12:21
+   |
+12 |     let _ = request.parent();
+   |                     ^^^^^^ method not found in `PluginRequest<'_>`

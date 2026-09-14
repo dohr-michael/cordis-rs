@@ -1,0 +1,25 @@
+error[E0437]: type `Prepared` is not a member of trait `Plugin`
+ --> tests/ui-facade58/fail/removed_plugin_prepared_associated_type.rs:7:5
+  |
+7 |     type Prepared = ();
+  |     ^^^^^^^^^^^^^^^^^^^ not a member of trait `Plugin`
+
+error[E0220]: associated type `Prepared` not found for `Self`
+  --> tests/ui-facade58/fail/removed_plugin_prepared_associated_type.rs:11:47
+   |
+11 |     fn prepare(&self, (): ()) -> Result<Self::Prepared, Self::PrepareError> { Ok(()) }
+   |                                               ^^^^^^^^ associated type `Prepared` not found
+
+error[E0220]: associated type `Prepared` not found for `Self`
+  --> tests/ui-facade58/fail/removed_plugin_prepared_associated_type.rs:12:49
+   |
+12 |     async fn apply(&self, _: Context, _: &Self::Prepared) -> Result<(), Self::ApplyError> { Ok(()) }
+   |                                                 ^^^^^^^^ associated type `Prepared` not found
+
+error[E0046]: not all trait items implemented, missing: `Input`
+ --> tests/ui-facade58/fail/removed_plugin_prepared_associated_type.rs:5:1
+  |
+5 | impl Plugin for P {
+  | ^^^^^^^^^^^^^^^^^ missing `Input` in implementation
+  |
+  = help: implement the missing item: `type Input = /* Type */;`

@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `cordis_loader::prelude`
+ --> tests/ui-facade59/fail/prelude_escape.rs:1:20
+  |
+1 | use cordis_loader::prelude::*;
+  |                    ^^^^^^^ could not find `prelude` in `cordis_loader`

@@ -1,0 +1,5 @@
+error[E0605]: non-primitive cast: `Level` as `u8`
+ --> tests/ui-logger/fail/level_has_no_numeric_conversion.rs:3:13
+  |
+3 |     let _ = Level::Info as u8;
+  |             ^^^^^^^^^^^^^^^^^ an `as` expression can only be used to convert between primitive types or to coerce to a specific trait object

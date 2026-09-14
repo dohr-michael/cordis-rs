@@ -1,0 +1,13 @@
+error[E0432]: unresolved imports `cordis_core::AroundListener`, `cordis_core::EventCarrier`, `cordis_core::StateListener`, `cordis_core::around_state`, `cordis_core::marker`
+ --> tests/ui/fail/old_event_surface.rs:1:19
+  |
+1 | use cordis_core::{AroundListener, EventCarrier, StateListener, around_state, marker};
+  |                   ^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^ no `marker` in the root
+  |                   |               |             |              |
+  |                   |               |             |              no `around_state` in the root
+  |                   |               |             no `StateListener` in the root
+  |                   |               no `EventCarrier` in the root
+  |                   no `AroundListener` in the root
+  |
+  = help: consider importing this module instead:
+          std::marker

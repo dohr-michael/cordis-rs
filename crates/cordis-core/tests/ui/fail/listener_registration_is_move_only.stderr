@@ -1,0 +1,5 @@
+error[E0599]: no method named `clone` found for struct `cordis_core::event::ListenerRegistration` in the current scope
+  --> tests/ui/fail/listener_registration_is_move_only.rs:17:31
+   |
+17 |     let _alias = registration.clone();
+   |                               ^^^^^ method not found in `cordis_core::event::ListenerRegistration`

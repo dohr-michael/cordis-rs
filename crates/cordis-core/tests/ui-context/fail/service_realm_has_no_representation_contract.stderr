@@ -1,0 +1,29 @@
+error[E0599]: no associated function or constant named `default` found for struct `ServiceRealm` in the current scope
+ --> tests/ui-context/fail/service_realm_has_no_representation_contract.rs:7:27
+  |
+7 |     let _ = ServiceRealm::default();
+  |                           ^^^^^^^ associated function or constant not found in `ServiceRealm`
+
+error[E0277]: `ServiceRealm` doesn't implement `std::fmt::Display`
+ --> tests/ui-context/fail/service_realm_has_no_representation_contract.rs:8:24
+  |
+8 |     requires_display::<ServiceRealm>();
+  |                        ^^^^^^^^^^^^ the trait `std::fmt::Display` is not implemented for `ServiceRealm`
+  |
+note: required by a bound in `requires_display`
+ --> tests/ui-context/fail/service_realm_has_no_representation_contract.rs:3:24
+  |
+3 | fn requires_display<T: std::fmt::Display>() {}
+  |                        ^^^^^^^^^^^^^^^^^ required by this bound in `requires_display`
+
+error[E0277]: the trait bound `ServiceRealm: Ord` is not satisfied
+ --> tests/ui-context/fail/service_realm_has_no_representation_contract.rs:9:22
+  |
+9 |     requires_order::<ServiceRealm>();
+  |                      ^^^^^^^^^^^^ the trait `Ord` is not implemented for `ServiceRealm`
+  |
+note: required by a bound in `requires_order`
+ --> tests/ui-context/fail/service_realm_has_no_representation_contract.rs:4:22
+  |
+4 | fn requires_order<T: Ord>() {}
+  |                      ^^^ required by this bound in `requires_order`

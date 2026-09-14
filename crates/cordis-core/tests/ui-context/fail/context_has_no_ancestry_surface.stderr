@@ -1,0 +1,17 @@
+error[E0599]: no method named `parent` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui-context/fail/context_has_no_ancestry_surface.rs:5:17
+  |
+5 |     let _ = ctx.parent();
+  |                 ^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `layers` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui-context/fail/context_has_no_ancestry_surface.rs:6:17
+  |
+6 |     let _ = ctx.layers();
+  |                 ^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `ancestors` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui-context/fail/context_has_no_ancestry_surface.rs:7:17
+  |
+7 |     let _ = ctx.ancestors();
+  |                 ^^^^^^^^^ method not found in `cordis_core::Context`

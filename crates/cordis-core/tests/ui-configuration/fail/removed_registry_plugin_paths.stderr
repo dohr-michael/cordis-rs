@@ -1,0 +1,23 @@
+error[E0432]: unresolved imports `cordis_core::registry::DynPlugin`, `cordis_core::registry::ErasedConfig`, `cordis_core::registry::InjectSpec`, `cordis_core::registry::InterceptConfig`, `cordis_core::registry::Plugin`, `cordis_core::registry::PluginBuilder`
+ --> tests/ui-configuration/fail/removed_registry_plugin_paths.rs:2:5
+  |
+2 |     DynPlugin, ErasedConfig, InjectSpec, InterceptConfig, Plugin, PluginBuilder,
+  |     ^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^  ^^^^^^^^^^^^^ no `PluginBuilder` in `registry`
+  |     |          |             |           |                |
+  |     |          |             |           |                no `Plugin` in `registry`
+  |     |          |             |           no `InterceptConfig` in `registry`
+  |     |          |             no `InjectSpec` in `registry`
+  |     |          no `ErasedConfig` in `registry`
+  |     no `DynPlugin` in `registry`
+
+error[E0603]: module `registry` is private
+ --> tests/ui-configuration/fail/removed_registry_plugin_paths.rs:1:18
+  |
+1 | use cordis_core::registry::{
+  |                  ^^^^^^^^ private module
+  |
+note: the module `registry` is defined here
+ --> src/lib.rs
+  |
+  | mod registry;
+  | ^^^^^^^^^^^^

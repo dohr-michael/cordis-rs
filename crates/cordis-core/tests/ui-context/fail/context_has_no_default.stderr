@@ -1,0 +1,11 @@
+error[E0599]: no associated function or constant named `default` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui-context/fail/context_has_no_default.rs:4:22
+  |
+4 |     let _ = Context::default();
+  |                      ^^^^^^^ associated function or constant not found in `cordis_core::Context`
+  |
+note: if you're trying to build a new `cordis_core::Context`, consider using `cordis_core::Context::new` which returns `cordis_core::Context`
+ --> src/context.rs
+  |
+  |     pub fn new() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^

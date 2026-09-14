@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_core::InternalUpdate`
+ --> tests/ui-lifecycle/fail/removed_internal_update_event.rs:1:5
+  |
+1 | use cordis_core::InternalUpdate;
+  |     ^^^^^^^^^^^^^--------------
+  |                  |
+  |                  no `InternalUpdate` in the root

@@ -1,0 +1,11 @@
+error[E0609]: no field `spawned` on type `&LoadOutcome`
+ --> tests/ui-outcome/fail/old_split_vectors.rs:2:22
+  |
+2 |     let _ = &outcome.spawned;
+  |                      ^^^^^^^ unknown field
+
+error[E0609]: no field `errors` on type `&LoadOutcome`
+ --> tests/ui-outcome/fail/old_split_vectors.rs:3:22
+  |
+3 |     let _ = &outcome.errors;
+  |                      ^^^^^^ unknown field

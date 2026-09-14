@@ -1,0 +1,17 @@
+error[E0599]: no method named `parallel_scoped` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui/fail/issue33_removed_scoped_aliases.rs:3:69
+  |
+3 | fn main(){ let ctx=Context::new(); let scope=ctx.scope(); let _=ctx.parallel_scoped::<E>(&scope, ()); let _=ctx.serial_scoped::<E>(&s...
+  |                                                                     ^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `serial_scoped` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui/fail/issue33_removed_scoped_aliases.rs:3:113
+  |
+3 | ...l_scoped::<E>(&scope, ()); let _=ctx.serial_scoped::<E>(&scope, ()); let _=ctx.bail_scoped::<E>(&scope, ()); }
+  |                                         ^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `bail_scoped` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui/fail/issue33_removed_scoped_aliases.rs:3:155
+  |
+3 | ...al_scoped::<E>(&scope, ()); let _=ctx.bail_scoped::<E>(&scope, ()); }
+  |                                          ^^^^^^^^^^^ method not found in `cordis_core::Context`

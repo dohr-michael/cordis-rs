@@ -1,0 +1,5 @@
+error[E0616]: field `key` of struct `ServiceRealm` is private
+ --> tests/ui-context/fail/service_realm_is_opaque.rs:5:19
+  |
+5 |     let _ = realm.key;
+  |                   ^^^ private field

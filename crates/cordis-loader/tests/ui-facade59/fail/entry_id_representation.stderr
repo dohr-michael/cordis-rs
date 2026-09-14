@@ -1,0 +1,5 @@
+error[E0616]: field `occurrence` of struct `EntryId` is private
+ --> tests/ui-facade59/fail/entry_id_representation.rs:1:55
+  |
+1 | fn inspect(id: &cordis_loader::EntryId) { let _ = &id.occurrence; }
+  |                                                       ^^^^^^^^^^ private field

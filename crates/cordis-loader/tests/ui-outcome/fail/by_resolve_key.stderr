@@ -1,0 +1,5 @@
+error[E0599]: no method named `by_resolve_key` found for reference `&LoadOutcome` in the current scope
+ --> tests/ui-outcome/fail/by_resolve_key.rs:2:21
+  |
+2 |     let _ = outcome.by_resolve_key();
+  |                     ^^^^^^^^^^^^^^ method not found in `&LoadOutcome`

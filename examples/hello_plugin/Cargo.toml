@@ -1,0 +1,14 @@
+[package]
+name = "hello_plugin"
+description = "cordis example — the on-ramp seat"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+cordis-core = { workspace = true }
+examples-common = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

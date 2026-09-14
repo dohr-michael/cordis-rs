@@ -1,0 +1,11 @@
+error[E0599]: no method named `clone` found for struct `PreparedPlugin` in the current scope
+  --> tests/ui-configuration/fail/prepared_values_are_move_only.rs:19:20
+   |
+19 |     let _ = plugin.clone();
+   |                    ^^^^^ method not found in `PreparedPlugin`
+
+error[E0599]: no method named `clone` found for struct `PreparedChange` in the current scope
+  --> tests/ui-configuration/fail/prepared_values_are_move_only.rs:21:20
+   |
+21 |     let _ = change.clone();
+   |                    ^^^^^ method not found in `PreparedChange`

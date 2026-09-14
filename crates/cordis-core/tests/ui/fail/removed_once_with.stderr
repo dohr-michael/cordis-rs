@@ -1,0 +1,11 @@
+error[E0599]: no method named `once_with` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui/fail/removed_once_with.rs:14:17
+   |
+14 |     let _ = ctx.once_with::<Ping, _>(
+   |             ----^^^^^^^^^
+   |
+help: there is a method `on_with` with a similar name
+   |
+14 -     let _ = ctx.once_with::<Ping, _>(
+14 +     let _ = ctx.on_with::<Ping, _>(
+   |

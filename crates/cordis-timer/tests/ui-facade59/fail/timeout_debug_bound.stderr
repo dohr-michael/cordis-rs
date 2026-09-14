@@ -1,0 +1,11 @@
+error[E0277]: `cordis_timer::Timeout<std::future::Ready<()>>` doesn't implement `Debug`
+ --> tests/ui-facade59/fail/timeout_debug_bound.rs:2:28
+  |
+2 | fn main() { assert_debug::<cordis_timer::Timeout<std::future::Ready<()>>>(); }
+  |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Debug` is not implemented for `cordis_timer::Timeout<std::future::Ready<()>>`
+  |
+note: required by a bound in `assert_debug`
+ --> tests/ui-facade59/fail/timeout_debug_bound.rs:1:20
+  |
+1 | fn assert_debug<T: std::fmt::Debug>() {}
+  |                    ^^^^^^^^^^^^^^^ required by this bound in `assert_debug`

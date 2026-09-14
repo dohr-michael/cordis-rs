@@ -1,0 +1,15 @@
+[package]
+name = "scopes_tenants"
+description = "cordis example — opaque Service placement and explicit Scope routing"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+cordis-core = { workspace = true }
+examples-common = { workspace = true }
+parking_lot = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

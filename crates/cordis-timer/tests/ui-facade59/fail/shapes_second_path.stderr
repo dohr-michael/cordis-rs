@@ -1,0 +1,13 @@
+error[E0603]: module `shapes` is private
+ --> tests/ui-facade59/fail/shapes_second_path.rs:1:19
+  |
+1 | use cordis_timer::shapes::Sleep;
+  |                   ^^^^^^  ----- struct `Sleep` is not publicly re-exported
+  |                   |
+  |                   private module
+  |
+note: the module `shapes` is defined here
+ --> src/lib.rs
+  |
+  | mod shapes;
+  | ^^^^^^^^^^

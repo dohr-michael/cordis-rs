@@ -1,0 +1,19 @@
+error[E0277]: the trait bound `MoveOnly: Clone` is not satisfied
+ --> tests/ui/fail/issue33_emit_requires_clone.rs:4:53
+  |
+4 | fn main(){ let ctx=Context::new(); let _=ctx.emit::<E>(Routing::Unscoped, MoveOnly(Box::new(()))); }
+  |                                                     ^ the trait `Clone` is not implemented for `MoveOnly`
+  |
+note: required by a bound in `cordis_core::events::dispatch::<impl cordis_core::Context>::emit`
+ --> src/events/dispatch.rs
+  |
+  |     pub async fn emit<E>(&self, routing: Routing, args: E::Args) -> Result<(), DispatchError>
+  |                  ---- required by a bound in this associated function
+...
+  |         E::Args: Clone,
+  |                  ^^^^^ required by this bound in `cordis_core::events::dispatch::<impl Context>::emit`
+help: consider annotating `MoveOnly` with `#[derive(Clone)]`
+  |
+2 + #[derive(Clone)]
+3 | struct MoveOnly(Box<()>);
+  |

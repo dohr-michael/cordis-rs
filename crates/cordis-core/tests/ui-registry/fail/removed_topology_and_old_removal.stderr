@@ -1,0 +1,34 @@
+error[E0599]: no method named `live_fiber_count` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-registry/fail/removed_topology_and_old_removal.rs:16:17
+   |
+16 |     let _ = ctx.live_fiber_count();
+   |                 ^^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `pending_missing` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-registry/fail/removed_topology_and_old_removal.rs:17:17
+   |
+17 |     let _ = ctx.pending_missing();
+   |                 ^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `registry` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-registry/fail/removed_topology_and_old_removal.rs:18:17
+   |
+18 |     let _ = ctx.registry();
+   |                 ^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `registry_remove` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-registry/fail/removed_topology_and_old_removal.rs:19:17
+   |
+19 |     let _ = ctx.registry_remove::<P>();
+   |                 ^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `remove_plugin` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-registry/fail/removed_topology_and_old_removal.rs:20:17
+   |
+20 |     let _ = ctx.remove_plugin::<P>();
+   |                 ^^^^^^^^^^^^^
+   |
+help: there is a method `remove_plugins` with a similar name
+   |
+20 |     let _ = ctx.remove_plugins::<P>();
+   |                              +

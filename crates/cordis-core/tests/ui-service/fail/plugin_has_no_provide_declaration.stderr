@@ -1,0 +1,5 @@
+error[E0407]: method `provide` is not a member of trait `Plugin`
+  --> tests/ui-service/fail/plugin_has_no_provide_declaration.rs:12:5
+   |
+12 |     fn provide(&self) -> &[&'static str] { &["service"] }
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a member of trait `Plugin`

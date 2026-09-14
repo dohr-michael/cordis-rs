@@ -1,0 +1,12 @@
+error[E0432]: unresolved imports `cordis_loader::Entry`, `cordis_loader::EntryOptions`, `cordis_loader::EntryTree`
+ --> tests/ui-plan/fail/old_plan_surface.rs:1:21
+  |
+1 | use cordis_loader::{Entry, EntryOptions, EntryTree};
+  |                     ^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^ no `EntryTree` in the root
+  |                     |      |
+  |                     |      no `EntryOptions` in the root
+  |                     no `Entry` in the root
+  |
+  = help: consider importing one of these enums instead:
+          std::collections::btree_map::Entry
+          std::collections::hash_map::Entry

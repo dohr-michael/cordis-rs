@@ -1,0 +1,11 @@
+error[E0277]: the trait bound `EntryId: Copy` is not satisfied
+ --> tests/ui-facade59/fail/entry_id_copy_bound.rs:2:27
+  |
+2 | fn main() { assert_copy::<cordis_loader::EntryId>(); }
+  |                           ^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `EntryId`
+  |
+note: required by a bound in `assert_copy`
+ --> tests/ui-facade59/fail/entry_id_copy_bound.rs:1:19
+  |
+1 | fn assert_copy<T: Copy>() {}
+  |                   ^^^^ required by this bound in `assert_copy`

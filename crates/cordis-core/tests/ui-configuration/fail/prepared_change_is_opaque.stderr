@@ -1,0 +1,11 @@
+error[E0616]: field `contract` of struct `PreparedChange` is private
+  --> tests/ui-configuration/fail/prepared_change_is_opaque.rs:19:20
+   |
+19 |     let _ = change.contract;
+   |                    ^^^^^^^^ private field
+
+error[E0616]: field `input` of struct `PreparedChange` is private
+  --> tests/ui-configuration/fail/prepared_change_is_opaque.rs:20:20
+   |
+20 |     let _ = change.input;
+   |                    ^^^^^ private field

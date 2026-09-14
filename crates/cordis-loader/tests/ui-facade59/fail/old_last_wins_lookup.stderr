@@ -1,0 +1,5 @@
+error[E0599]: no method named `by_resolve_key` found for reference `&LoadPlan` in the current scope
+ --> tests/ui-facade59/fail/old_last_wins_lookup.rs:1:58
+  |
+1 | fn lookup(plan: &cordis_loader::LoadPlan) { let _ = plan.by_resolve_key("x"); }
+  |                                                          ^^^^^^^^^^^^^^ method not found in `&LoadPlan`

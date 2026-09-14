@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `cordis_loader::tree`
+ --> tests/ui-facade59/fail/old_tree_module.rs:1:20
+  |
+1 | use cordis_loader::tree::EntryTree;
+  |                    ^^^^ could not find `tree` in `cordis_loader`

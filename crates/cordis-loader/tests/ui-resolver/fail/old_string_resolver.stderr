@@ -1,0 +1,13 @@
+error[E0053]: method `resolve` has an incompatible type for trait
+ --> tests/ui-resolver/fail/old_string_resolver.rs:8:29
+  |
+8 |     fn resolve(&self, _key: &str) -> Option<PreparedPlugin> { None }
+  |                             ^^^^ expected `PluginRequest<'_>`, found `&str`
+  |
+  = note: expected signature `fn(&LegacyResolver, PluginRequest<'_>) -> Result<Option<PreparedPlugin>, Infallible>`
+             found signature `fn(&LegacyResolver, &str) -> Option<PreparedPlugin>`
+help: change the parameter type to match the trait
+  |
+8 -     fn resolve(&self, _key: &str) -> Option<PreparedPlugin> { None }
+8 +     fn resolve(&self, _key: PluginRequest<'_>) -> Option<PreparedPlugin> { None }
+  |

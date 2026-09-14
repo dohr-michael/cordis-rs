@@ -1,0 +1,5 @@
+error[E0599]: no variant, associated function, or constant named `SettleRecursion` found for enum `WaitStateError` in the current scope
+ --> tests/ui-lifecycle/fail/removed_wait_state_settle_recursion.rs:4:29
+  |
+4 |     let _ = WaitStateError::SettleRecursion(error);
+  |                             ^^^^^^^^^^^^^^^ variant, associated function, or constant not found in `WaitStateError`

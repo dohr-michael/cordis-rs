@@ -1,0 +1,102 @@
+error[E0432]: unresolved imports `cordis_core::BoxFuture`, `cordis_core::Registry`, `cordis_core::Runtime`, `cordis_core::RuntimeId`, `cordis_core::DynPlugin`, `cordis_core::List`
+ --> tests/ui-facade58/fail/removed_facade_paths.rs:1:19
+  |
+1 | use cordis_core::{BoxFuture, Registry, Runtime, RuntimeId, DynPlugin, List};
+  |                   ^^^^^^^^^  ^^^^^^^^  ^^^^^^^  ^^^^^^^^^  ^^^^^^^^^  ^^^^ no `List` in the root
+  |                   |          |         |        |          |
+  |                   |          |         |        |          no `DynPlugin` in the root
+  |                   |          |         |        no `RuntimeId` in the root
+  |                   |          |         no `Runtime` in the root
+  |                   |          no `Registry` in the root
+  |                   no `BoxFuture` in the root
+  |
+help: a similar name exists in the module
+  |
+1 - use cordis_core::{BoxFuture, Registry, Runtime, RuntimeId, DynPlugin, List};
+1 + use cordis_core::{BoxFuture, registry, Runtime, RuntimeId, DynPlugin, List};
+  |
+help: a similar name exists in the module
+  |
+1 - use cordis_core::{BoxFuture, Registry, Runtime, RuntimeId, DynPlugin, List};
+1 + use cordis_core::{BoxFuture, Registry, Runtime, RuntimeId, Plugin, List};
+  |
+
+error[E0432]: unresolved import `cordis_core::error`
+ --> tests/ui-facade58/fail/removed_facade_paths.rs:3:18
+  |
+3 | use cordis_core::error::CordisErrorCode;
+  |                  ^^^^^ could not find `error` in `cordis_core`
+
+error[E0432]: unresolved import `cordis_core::internal`
+ --> tests/ui-facade58/fail/removed_facade_paths.rs:6:18
+  |
+6 | use cordis_core::internal::RuntimeObservation;
+  |                  ^^^^^^^^ could not find `internal` in `cordis_core`
+
+error[E0603]: module `context` is private
+ --> tests/ui-facade58/fail/removed_facade_paths.rs:2:18
+  |
+2 | use cordis_core::context::Context as OldContext;
+  |                  ^^^^^^^  ------- struct `Context` is not publicly re-exported
+  |                  |
+  |                  private module
+  |
+note: the module `context` is defined here
+ --> src/lib.rs
+  |
+  | mod context;
+  | ^^^^^^^^^^^
+
+error[E0603]: module `events` is private
+ --> tests/ui-facade58/fail/removed_facade_paths.rs:4:18
+  |
+4 | use cordis_core::events::Event as OldEvent;
+  |                  ^^^^^^  ----- trait `Event` is not publicly re-exported
+  |                  |
+  |                  private module
+  |
+note: the module `events` is defined here
+ --> src/lib.rs
+  |
+  | mod events;
+  | ^^^^^^^^^^
+
+error[E0603]: module `fiber` is private
+ --> tests/ui-facade58/fail/removed_facade_paths.rs:5:18
+  |
+5 | use cordis_core::fiber::Fork as OldFork;
+  |                  ^^^^^  ---- struct `Fork` is not publicly re-exported
+  |                  |
+  |                  private module
+  |
+note: the module `fiber` is defined here
+ --> src/lib.rs
+  |
+  | mod fiber;
+  | ^^^^^^^^^
+
+error[E0603]: module `registry` is private
+ --> tests/ui-facade58/fail/removed_facade_paths.rs:7:18
+  |
+7 | use cordis_core::registry::PluginKey;
+  |                  ^^^^^^^^  --------- enum `PluginKey` is not publicly re-exported
+  |                  |
+  |                  private module
+  |
+note: the module `registry` is defined here
+ --> src/lib.rs
+  |
+  | mod registry;
+  | ^^^^^^^^^^^^
+
+error[E0603]: type alias `BoxFuture` is private
+ --> tests/ui-facade58/fail/removed_facade_paths.rs:8:26
+  |
+8 | use cordis_core::effect::BoxFuture as EffectBoxFuture;
+  |                          ^^^^^^^^^ private type alias
+  |
+note: the type alias `BoxFuture` is defined here
+ --> src/effect.rs
+  |
+  | pub(crate) type BoxFuture<T> = Pin<Box<dyn Future<Output = T> + Send>>;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

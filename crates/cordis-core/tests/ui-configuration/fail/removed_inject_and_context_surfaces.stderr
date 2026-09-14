@@ -1,0 +1,76 @@
+error[E0599]: no associated function or constant named `new` found for struct `InjectSpec` in the current scope
+ --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:5:25
+  |
+5 |     let _ = InjectSpec::new();
+  |                         ^^^ associated function or constant not found in `InjectSpec`
+  |
+note: if you're trying to build a new `InjectSpec`, consider using `InjectSpec::none` which returns `InjectSpec`
+ --> src/plugin.rs
+  |
+  |     pub fn none() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `requires` found for struct `InjectSpec` in the current scope
+ --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:6:32
+  |
+6 |     let _ = InjectSpec::none().requires(&["service"]);
+  |                                ^^^^^^^^
+  |
+help: there is a method `require` with a similar name
+  |
+6 -     let _ = InjectSpec::none().requires(&["service"]);
+6 +     let _ = InjectSpec::none().require(&["service"]);
+  |
+
+error[E0599]: no method named `require_with` found for struct `InjectSpec` in the current scope
+ --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:7:32
+  |
+7 |     let _ = InjectSpec::none().require_with("service", Arc::new(()));
+  |                                ^^^^^^^^^^^^
+  |
+help: there is a method `require` with a similar name, but with different arguments
+ --> src/plugin.rs
+  |
+  |     pub fn require(mut self, name: impl Into<String>) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `require_overriding` found for struct `InjectSpec` in the current scope
+ --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:8:32
+  |
+8 |     let _ = InjectSpec::none().require_overriding("service", None);
+  |                                ^^^^^^^^^^^^^^^^^^ method not found in `InjectSpec`
+
+error[E0599]: no method named `iter` found for struct `InjectSpec` in the current scope
+ --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:9:32
+  |
+9 |     let _ = InjectSpec::none().iter();
+  |                                ^^^^ method not found in `InjectSpec`
+
+error[E0599]: no method named `is_empty` found for struct `InjectSpec` in the current scope
+  --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:10:32
+   |
+10 |     let _ = InjectSpec::none().is_empty();
+   |                                ^^^^^^^^ method not found in `InjectSpec`
+
+error[E0599]: no method named `intercept` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:13:17
+   |
+13 |     let _ = ctx.intercept("service");
+   |                 ^^^^^^^^^ private field, not a method
+   |
+help: there is a method `with_intercept` with a similar name
+   |
+13 |     let _ = ctx.with_intercept("service");
+   |                 +++++
+
+error[E0609]: no field `plugin_dyn` on type `cordis_core::Context`
+  --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:14:17
+   |
+14 |     let _ = ctx.plugin_dyn;
+   |                 ^^^^^^^^^^ unknown field
+
+error[E0609]: no field `plugin` on type `cordis_core::Context`
+  --> tests/ui-configuration/fail/removed_inject_and_context_surfaces.rs:15:17
+   |
+15 |     let _ = ctx.plugin;
+   |                 ^^^^^^ unknown field

@@ -1,5 +1,7 @@
 name: Release-plz
 
+# v3 is a staging branch. Publishing remains main-only until v3 is promoted.
+
 on:
   push:
     branches: [main]

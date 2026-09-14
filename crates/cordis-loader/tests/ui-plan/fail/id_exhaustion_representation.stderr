@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_loader::LoaderError`
+ --> tests/ui-plan/fail/id_exhaustion_representation.rs:1:5
+  |
+1 | use cordis_loader::LoaderError;
+  |     ^^^^^^^^^^^^^^^-----------
+  |                    |
+  |                    no `LoaderError` in the root

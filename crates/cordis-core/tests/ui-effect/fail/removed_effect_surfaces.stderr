@@ -1,0 +1,68 @@
+error[E0432]: unresolved imports `cordis_core::EffectGuard`, `cordis_core::EffectMeta`
+ --> tests/ui-effect/fail/removed_effect_surfaces.rs:4:28
+  |
+4 | use cordis_core::{Context, EffectGuard, EffectMeta};
+  |                            ^^^^^^^^^^^  ^^^^^^^^^^ no `EffectMeta` in the root
+  |                            |
+  |                            no `EffectGuard` in the root
+
+error[E0277]: expected an `FnOnce()` closure, found `&str`
+ --> tests/ui-effect/fail/removed_effect_surfaces.rs:8:33
+  |
+8 |     let guard = ctx.effect_sync("db-handle", || {}).unwrap();
+  |                     ----------- ^^^^^^^^^^^ expected an `FnOnce()` closure, found `&str`
+  |                     |
+  |                     required by a bound introduced by this call
+  |
+  = help: the trait `Fn()` is not implemented for `str`
+  = note: wrap the `&str` in a closure with no arguments: `|| { /* code */ }`
+  = note: required for `&str` to implement `FnOnce()`
+note: required by a bound in `effect::<impl cordis_core::Context>::effect_sync`
+ --> src/effect.rs
+  |
+  |     pub fn effect_sync<F, R>(
+  |            ----------- required by a bound in this associated function
+...
+  |         F: FnOnce() -> R + Send + 'static,
+  |            ^^^^^^^^^^^^^ required by this bound in `effect::<impl Context>::effect_sync`
+
+error[E0061]: this method takes 1 argument but 2 arguments were supplied
+ --> tests/ui-effect/fail/removed_effect_surfaces.rs:8:21
+  |
+8 |     let guard = ctx.effect_sync("db-handle", || {}).unwrap();
+  |                     ^^^^^^^^^^^              ----- unexpected argument #2 of type `{closure@$DIR/tests/ui-effect/fail/removed_effect_surfaces.rs:8:46: 8:48}`
+  |
+note: method defined here
+ --> src/effect.rs
+  |
+  |     pub fn effect_sync<F, R>(
+  |            ^^^^^^^^^^^
+help: remove the extra argument
+  |
+8 -     let guard = ctx.effect_sync("db-handle", || {}).unwrap();
+8 +     let guard = ctx.effect_sync("db-handle").unwrap();
+  |
+
+error[E0599]: no method named `clone` found for struct `EffectRegistration` in the current scope
+ --> tests/ui-effect/fail/removed_effect_surfaces.rs:9:24
+  |
+9 |     let guard2 = guard.clone();
+  |                        ^^^^^ method not found in `EffectRegistration`
+
+error[E0599]: no method named `effects` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-effect/fail/removed_effect_surfaces.rs:11:40
+   |
+11 |     let _labels: Vec<EffectMeta> = ctx.effects();
+   |                                        ^^^^^^^
+   |
+help: there is a method `effect` with a similar name, but with different arguments
+  --> src/effect.rs
+   |
+   | /     pub fn effect<F, Fut, R>(
+   | |         &self,
+   | |         cleanup: F,
+   | |     ) -> std::result::Result<EffectRegistration, EffectRegistrationError>
+...  |
+   | |         Fut: Future<Output = R> + Send,
+   | |         R: CleanupResult,
+   | |_________________________^

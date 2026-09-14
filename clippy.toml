@@ -1,0 +1,21 @@
+# Lock-discipline lint config (ADR 0010).
+#
+# Both entries ride the clippy `-D warnings` CI gate (ADR 0002 gate 2).
+
+# Lock type is `parking_lot`, never std/tokio (ADR 0010 matrix row 6).
+# Escape hatch: `#[allow(clippy::disallowed_types)]` whose comment is the
+# written justification.
+disallowed-types = [
+    "std::sync::Mutex",
+    "std::sync::RwLock",
+    "std::sync::Condvar",
+    "tokio::sync::Mutex",
+    "tokio::sync::RwLock",
+]
+
+# No lock guard held across `.await` (ADR 0010 matrix row 7):
+# `clippy::await_holding_lock` — warn by default, not configurable via
+# clippy.toml (only its sibling `await-holding-invalid-types` is), and
+# already denied through the clippy `-D warnings` gate. Named here as
+# documentation so the full lock-discipline matrix is readable in one
+# place.

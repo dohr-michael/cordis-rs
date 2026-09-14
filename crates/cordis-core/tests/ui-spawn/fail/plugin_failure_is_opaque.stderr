@@ -1,0 +1,30 @@
+error[E0624]: associated function `returned` is private
+ --> tests/ui-spawn/fail/plugin_failure_is_opaque.rs:5:28
+  |
+5 |     let _ = PluginFailure::returned("boom".to_owned());
+  |                            ^^^^^^^^ private associated function
+  |
+ ::: src/fiber/spawn.rs
+  |
+  |     pub(crate) fn returned(diagnostic: String) -> Self {
+  |     -------------------------------------------------- private associated function defined here
+
+error[E0599]: no method named `downcast_ref` found for reference `&PluginFailure` in the current scope
+ --> tests/ui-spawn/fail/plugin_failure_is_opaque.rs:7:21
+  |
+7 |     let _ = failure.downcast_ref::<std::io::Error>();
+  |                     ^^^^^^^^^^^^ method not found in `&PluginFailure`
+
+error[E0308]: mismatched types
+  --> tests/ui-spawn/fail/plugin_failure_is_opaque.rs:14:5
+   |
+13 | fn clone_it(failure: &PluginFailure) -> PluginFailure {
+   |                                         ------------- expected `PluginFailure` because of return type
+14 |     failure.clone()
+   |     ^^^^^^^^^^^^^^^ expected `PluginFailure`, found `&PluginFailure`
+   |
+note: `PluginFailure` does not implement `Clone`, so `&PluginFailure` was cloned instead
+  --> tests/ui-spawn/fail/plugin_failure_is_opaque.rs:14:5
+   |
+14 |     failure.clone()
+   |     ^^^^^^^

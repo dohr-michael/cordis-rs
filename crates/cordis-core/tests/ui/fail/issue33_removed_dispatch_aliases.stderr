@@ -1,0 +1,29 @@
+error[E0599]: no method named `parallel` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui/fail/issue33_removed_dispatch_aliases.rs:3:46
+  |
+3 | fn main(){ let ctx=Context::new(); let _=ctx.parallel::<E>(()); let _=ctx.serial::<E>(()); let _=ctx.bail::<E>(()); }
+  |                                              ^^^^^^^^
+  |
+help: there is a method `emit_parallel` with a similar name, but with different arguments
+ --> src/events/dispatch.rs
+  |
+  | /     pub async fn emit_parallel<E>(
+  | |         &self,
+  | |         routing: Routing,
+  | |         args: E::Args,
+... |
+  | |         E: Event,
+  | |         E::Args: Clone,
+  | |_______________________^
+
+error[E0599]: no method named `serial` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui/fail/issue33_removed_dispatch_aliases.rs:3:75
+  |
+3 | fn main(){ let ctx=Context::new(); let _=ctx.parallel::<E>(()); let _=ctx.serial::<E>(()); let _=ctx.bail::<E>(()); }
+  |                                                                           ^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `bail` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui/fail/issue33_removed_dispatch_aliases.rs:3:102
+  |
+3 | fn main(){ let ctx=Context::new(); let _=ctx.parallel::<E>(()); let _=ctx.serial::<E>(()); let _=ctx.bail::<E>(()); }
+  |                                                                                                      ^^^^ method not found in `cordis_core::Context`

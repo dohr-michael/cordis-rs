@@ -1,0 +1,5 @@
+error[E0599]: no method named `register` found for type parameter `L` in the current scope
+ --> tests/ui/fail/listener_register_method.rs:4:73
+  |
+4 | fn probe<L: Listener<Ping>>(listener:L, ctx:&Context){ let _ = listener.register(ctx, Default::default()); }
+  |          - method `register` not found for this type parameter          ^^^^^^^^ method not found in `L`

@@ -1,0 +1,15 @@
+error[E0423]: expected function, tuple struct or tuple variant, found struct `EntryId`
+ --> tests/ui-plan/fail/entry_id_constructor.rs:2:21
+  |
+2 | fn main() { let _ = EntryId(0); }
+  |                     ^^^^^^^^^^
+  |
+ ::: src/plan.rs
+  |
+  | pub struct EntryId {
+  | ------------------ `EntryId` defined here
+  |
+help: you might have meant to use the `new` associated function
+  |
+2 | fn main() { let _ = EntryId::new(0); }
+  |                            +++++

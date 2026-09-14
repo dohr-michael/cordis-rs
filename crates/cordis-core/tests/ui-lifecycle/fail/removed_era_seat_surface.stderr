@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_core::lifecycle::EraSeat`
+ --> tests/ui-lifecycle/fail/removed_era_seat_surface.rs:1:5
+  |
+1 | use cordis_core::lifecycle::EraSeat;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^-------
+  |                             |
+  |                             no `EraSeat` in `lifecycle`

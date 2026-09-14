@@ -1,0 +1,36 @@
+error[E0432]: unresolved imports `cordis_core::BufferExporter`, `cordis_core::CleanupResult`, `cordis_core::DispatchError`, `cordis_core::Exporter`, `cordis_core::FiberRole`, `cordis_core::Listener`, `cordis_core::LogRecord`, `cordis_core::RealmMappingError`, `cordis_core::RuntimeSnapshot`, `cordis_core::ServicePublication`, `cordis_core::SpawnError`
+ --> tests/ui-facade58/fail/root_whitelist_is_exact.rs:2:5
+  |
+2 |     BufferExporter, CleanupResult, DispatchError, Exporter, FiberRole, Listener,
+  |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^  ^^^^^^^^^  ^^^^^^^^ no `Listener` in the root
+  |     |               |              |              |         |
+  |     |               |              |              |         no `FiberRole` in the root
+  |     |               |              |              no `Exporter` in the root
+  |     |               |              no `DispatchError` in the root
+  |     |               no `CleanupResult` in the root
+  |     no `BufferExporter` in the root
+3 |     LogRecord, RealmMappingError, RuntimeSnapshot, ServicePublication, SpawnError,
+  |     ^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+  |     |          |                  |                |
+  |     |          |                  |                no `ServicePublication` in the root
+  |     |          |                  no `RuntimeSnapshot` in the root
+  |     |          no `RealmMappingError` in the root
+  |     no `LogRecord` in the root
+
+error[E0432]: unresolved import `cordis_core::plugin::BoxError`
+ --> tests/ui-facade58/fail/root_whitelist_is_exact.rs:5:36
+  |
+5 | use cordis_core::plugin::{Context, BoxError};
+  |                                    ^^^^^^^^ no `BoxError` in `plugin`
+
+error[E0603]: struct `Context` is private
+ --> tests/ui-facade58/fail/root_whitelist_is_exact.rs:5:27
+  |
+5 | use cordis_core::plugin::{Context, BoxError};
+  |                           ^^^^^^^ private struct
+  |
+note: the struct `Context` is defined here
+ --> src/plugin.rs
+  |
+  | use crate::Context;
+  |     ^^^^^^^^^^^^^^

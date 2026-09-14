@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_loader::SpawnedEntry`
+ --> tests/ui-outcome/fail/spawned_entry.rs:1:5
+  |
+1 | use cordis_loader::SpawnedEntry;
+  |     ^^^^^^^^^^^^^^^------------
+  |                    |
+  |                    no `SpawnedEntry` in the root

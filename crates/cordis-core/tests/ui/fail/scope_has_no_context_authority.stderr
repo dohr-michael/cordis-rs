@@ -1,0 +1,5 @@
+error[E0599]: no method named `with_child_scope` found for struct `cordis_core::Scope` in the current scope
+ --> tests/ui/fail/scope_has_no_context_authority.rs:2:63
+  |
+2 | fn main() { let scope = Context::new().scope(); let _ = scope.with_child_scope(); }
+  |                                                               ^^^^^^^^^^^^^^^^ method not found in `cordis_core::Scope`

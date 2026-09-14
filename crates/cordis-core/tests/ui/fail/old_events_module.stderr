@@ -1,0 +1,11 @@
+error[E0603]: module `events` is private
+ --> tests/ui/fail/old_events_module.rs:1:18
+  |
+1 | use cordis_core::events;
+  |                  ^^^^^^ private module
+  |
+note: the module `events` is defined here
+ --> src/lib.rs
+  |
+  | mod events;
+  | ^^^^^^^^^^

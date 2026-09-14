@@ -1,0 +1,27 @@
+error[E0599]: no method named `clone` found for struct `ExporterRegistration` in the current scope
+ --> tests/ui-logger/fail/registration_and_buffer_are_not_clone_or_default.rs:3:82
+  |
+3 | fn clone_registration(registration: ExporterRegistration) { let _ = registration.clone(); }
+  |                                                                                  ^^^^^ method not found in `ExporterRegistration`
+
+error[E0599]: no associated function or constant named `default` found for struct `BufferExporter` in the current scope
+ --> tests/ui-logger/fail/registration_and_buffer_are_not_clone_or_default.rs:5:29
+  |
+5 |     let _ = BufferExporter::default();
+  |                             ^^^^^^^ associated function or constant not found in `BufferExporter`
+  |
+note: if you're trying to build a new `BufferExporter`, consider using `BufferExporter::new` which returns `Result<BufferExporter, BufferSizeZero>`
+ --> src/logger.rs
+  |
+  |     pub fn new(capacity: usize, min_level: Level) -> std::result::Result<Self, BufferSizeZero> {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is a method `default_level` with a similar name
+  |
+5 |     let _ = BufferExporter::default_level();
+  |                                    ++++++
+
+error[E0599]: no method named `clone` found for struct `BufferExporter` in the current scope
+ --> tests/ui-logger/fail/registration_and_buffer_are_not_clone_or_default.rs:6:58
+  |
+6 |     let _ = BufferExporter::new(1, Level::Info).unwrap().clone();
+  |                                                          ^^^^^ method not found in `BufferExporter`

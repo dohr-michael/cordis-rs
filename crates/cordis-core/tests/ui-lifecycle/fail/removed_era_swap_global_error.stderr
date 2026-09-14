@@ -1,0 +1,13 @@
+error[E0432]: unresolved import `cordis_core::Result`
+ --> tests/ui-lifecycle/fail/removed_era_swap_global_error.rs:1:35
+  |
+1 | use cordis_core::{PreparedChange, Result};
+  |                                   ^^^^^^ no `Result` in the root
+  |
+  = help: consider importing one of these items instead:
+          std::fmt::Result
+          std::io::Result
+          std::result::Result
+          std::thread::Result
+          core::fmt::Result
+          core::result::Result

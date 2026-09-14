@@ -1,0 +1,22 @@
+error[E0432]: unresolved imports `cordis_core::CordisError`, `cordis_core::CordisErrorCode`, `cordis_core::Result`
+ --> tests/ui-effect/fail/run_removed_spellings.rs:5:28
+  |
+5 | use cordis_core::{Context, CordisError, CordisErrorCode, Result};
+  |                            ^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^ no `Result` in the root
+  |                            |            |
+  |                            |            no `CordisErrorCode` in the root
+  |                            no `CordisError` in the root
+  |
+  = help: consider importing one of these items instead:
+          std::fmt::Result
+          std::io::Result
+          std::result::Result
+          std::thread::Result
+          core::fmt::Result
+          core::result::Result
+
+error[E0599]: no method named `error_code` found for enum `TaskRegistrationError` in the current scope
+  --> tests/ui-effect/fail/run_removed_spellings.rs:15:17
+   |
+15 |     let _ = err.error_code();
+   |                 ^^^^^^^^^^ method not found in `TaskRegistrationError`

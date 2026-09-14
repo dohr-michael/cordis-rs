@@ -1,0 +1,11 @@
+error[E0277]: the trait bound `Sleep: Clone` is not satisfied
+ --> tests/ui-facade59/fail/sleep_clone_bound.rs:2:28
+  |
+2 | fn main() { assert_clone::<cordis_timer::Sleep>(); }
+  |                            ^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `Sleep`
+  |
+note: required by a bound in `assert_clone`
+ --> tests/ui-facade59/fail/sleep_clone_bound.rs:1:20
+  |
+1 | fn assert_clone<T: Clone>() {}
+  |                    ^^^^^ required by this bound in `assert_clone`

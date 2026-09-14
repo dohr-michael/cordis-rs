@@ -1,0 +1,88 @@
+error[E0432]: unresolved imports `cordis_core::Acquire`, `cordis_core::Collection`, `cordis_core::ResourceBag`, `cordis_core::Storage`, `cordis_core::acquire`, `cordis_core::collection`, `cordis_core::resource`, `cordis_core::storage`
+ --> tests/ui-list/fail/removed_list_compatibility_surfaces.rs:4:5
+  |
+4 |     Acquire, Collection, ResourceBag, Storage, acquire, collection, resource, storage,
+  |     ^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^  ^^^^^^^  ^^^^^^^^^^  ^^^^^^^^  ^^^^^^^ no `storage` in the root
+  |     |        |           |            |        |        |           |
+  |     |        |           |            |        |        |           no `resource` in the root
+  |     |        |           |            |        |        no `collection` in the root
+  |     |        |           |            |        no `acquire` in the root
+  |     |        |           |            no `Storage` in the root
+  |     |        |           no `ResourceBag` in the root
+  |     |        no `Collection` in the root
+  |     no `Acquire` in the root
+  |
+  = help: consider importing this variant instead:
+          std::sync::atomic::Ordering::Acquire
+
+error[E0432]: unresolved imports `cordis_core::effect::Acquire`, `cordis_core::effect::Collection`, `cordis_core::effect::List`, `cordis_core::effect::ResourceBag`, `cordis_core::effect::Storage`
+ --> tests/ui-list/fail/removed_list_compatibility_surfaces.rs:7:5
+  |
+7 |     Acquire as EffectAcquire, Collection as EffectCollection, List as EffectList,
+  |     -------^^^^^^^^^^^^^^^^^  ----------^^^^^^^^^^^^^^^^^^^^  ----^^^^^^^^^^^^^^
+  |     |                         |                               |
+  |     |                         |                               no `List` in `effect`
+  |     |                         no `Collection` in `effect`
+  |     no `Acquire` in `effect`
+8 |     ResourceBag as EffectResourceBag, Storage as EffectStorage,
+  |     -----------^^^^^^^^^^^^^^^^^^^^^  -------^^^^^^^^^^^^^^^^^
+  |     |                                 |
+  |     |                                 no `Storage` in `effect`
+  |     no `ResourceBag` in `effect`
+  |
+  = help: consider importing this variant instead:
+          std::sync::atomic::Ordering::Acquire
+
+error[E0432]: unresolved imports `cordis_core::event::Acquire`, `cordis_core::event::Collection`, `cordis_core::event::List`, `cordis_core::event::ResourceBag`, `cordis_core::event::Storage`
+  --> tests/ui-list/fail/removed_list_compatibility_surfaces.rs:11:5
+   |
+11 |     Acquire as EventAcquire, Collection as EventCollection, List as EventList,
+   |     -------^^^^^^^^^^^^^^^^  ----------^^^^^^^^^^^^^^^^^^^  ----^^^^^^^^^^^^^
+   |     |                        |                              |
+   |     |                        |                              no `List` in `event`
+   |     |                        no `Collection` in `event`
+   |     no `Acquire` in `event`
+12 |     ResourceBag as EventResourceBag, Storage as EventStorage,
+   |     -----------^^^^^^^^^^^^^^^^^^^^  -------^^^^^^^^^^^^^^^^
+   |     |                                |
+   |     |                                no `Storage` in `event`
+   |     no `ResourceBag` in `event`
+   |
+   = help: consider importing this variant instead:
+           std::sync::atomic::Ordering::Acquire
+
+error[E0432]: unresolved imports `cordis_core::logger::Acquire`, `cordis_core::logger::Collection`, `cordis_core::logger::List`, `cordis_core::logger::ResourceBag`, `cordis_core::logger::Storage`
+  --> tests/ui-list/fail/removed_list_compatibility_surfaces.rs:15:5
+   |
+15 |     Acquire as LoggerAcquire, Collection as LoggerCollection, List as LoggerList,
+   |     -------^^^^^^^^^^^^^^^^^  ----------^^^^^^^^^^^^^^^^^^^^  ----^^^^^^^^^^^^^^
+   |     |                         |                               |
+   |     |                         |                               no `List` in `logger`
+   |     |                         no `Collection` in `logger`
+   |     no `Acquire` in `logger`
+16 |     ResourceBag as LoggerResourceBag, Storage as LoggerStorage,
+   |     -----------^^^^^^^^^^^^^^^^^^^^^  -------^^^^^^^^^^^^^^^^^
+   |     |                                 |
+   |     |                                 no `Storage` in `logger`
+   |     no `ResourceBag` in `logger`
+   |
+   = help: consider importing this variant instead:
+           std::sync::atomic::Ordering::Acquire
+
+error[E0432]: unresolved imports `cordis_core::service::Acquire`, `cordis_core::service::Collection`, `cordis_core::service::List`, `cordis_core::service::ResourceBag`, `cordis_core::service::Storage`
+  --> tests/ui-list/fail/removed_list_compatibility_surfaces.rs:19:5
+   |
+19 |     Acquire as ServiceAcquire, Collection as ServiceCollection, List as ServiceList,
+   |     -------^^^^^^^^^^^^^^^^^^  ----------^^^^^^^^^^^^^^^^^^^^^  ----^^^^^^^^^^^^^^^
+   |     |                          |                                |
+   |     |                          |                                no `List` in `service`
+   |     |                          no `Collection` in `service`
+   |     no `Acquire` in `service`
+20 |     ResourceBag as ServiceResourceBag, Storage as ServiceStorage,
+   |     -----------^^^^^^^^^^^^^^^^^^^^^^  -------^^^^^^^^^^^^^^^^^^
+   |     |                                  |
+   |     |                                  no `Storage` in `service`
+   |     no `ResourceBag` in `service`
+   |
+   = help: consider importing this variant instead:
+           std::sync::atomic::Ordering::Acquire

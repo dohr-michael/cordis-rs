@@ -1,0 +1,8 @@
+error[E0432]: unresolved imports `cordis_loader::DynPlugin`, `cordis_loader::json_plugin`, `cordis_loader::intercept_json`
+ --> tests/ui-resolver/fail/stale_resolver_surface.rs:1:21
+  |
+1 | use cordis_loader::{DynPlugin, json_plugin, intercept_json};
+  |                     ^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^ no `intercept_json` in the root
+  |                     |          |
+  |                     |          no `json_plugin` in the root
+  |                     no `DynPlugin` in the root

@@ -1,0 +1,15 @@
+error[E0061]: this method takes 2 arguments but 1 argument was supplied
+ --> tests/ui-timer/fail/removed_delay_only_timeout.rs:7:17
+  |
+7 |     let _ = ctx.timeout(Duration::from_millis(1));
+  |                 ^^^^^^^-------------------------- argument #2 is missing
+  |
+note: method defined here
+ --> src/shapes.rs
+  |
+  |     fn timeout<F: Future>(
+  |        ^^^^^^^
+help: provide the argument
+  |
+7 |     let _ = ctx.timeout(Duration::from_millis(1), /* work */);
+  |                                                 ++++++++++++

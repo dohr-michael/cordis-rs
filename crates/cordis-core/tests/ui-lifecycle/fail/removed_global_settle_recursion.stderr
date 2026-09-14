@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_core::CordisErrorCode`
+ --> tests/ui-lifecycle/fail/removed_global_settle_recursion.rs:1:5
+  |
+1 | use cordis_core::CordisErrorCode;
+  |     ^^^^^^^^^^^^^---------------
+  |                  |
+  |                  no `CordisErrorCode` in the root

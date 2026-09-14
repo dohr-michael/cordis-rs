@@ -1,0 +1,19 @@
+error[E0432]: unresolved imports `cordis_core::IsolateId`, `cordis_core::IsolateRealm`
+ --> tests/ui-context/fail/removed_isolate_surfaces.rs:1:28
+  |
+1 | use cordis_core::{Context, IsolateId, IsolateRealm};
+  |                            ^^^^^^^^^  ^^^^^^^^^^^^ no `IsolateRealm` in the root
+  |                            |
+  |                            no `IsolateId` in the root
+
+error[E0599]: no method named `with_isolate_realms` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui-context/fail/removed_isolate_surfaces.rs:7:17
+  |
+7 |     let _ = ctx.with_isolate_realms([(String::from("service"), IsolateRealm::Private)]);
+  |                 ^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `with_service_realms` with a similar name
+  |
+7 -     let _ = ctx.with_isolate_realms([(String::from("service"), IsolateRealm::Private)]);
+7 +     let _ = ctx.with_service_realms([(String::from("service"), IsolateRealm::Private)]);
+  |

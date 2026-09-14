@@ -1,0 +1,7 @@
+error[E0432]: unresolved imports `cordis_core::List`, `cordis_core::list`
+ --> tests/ui-list/fail/removed_list_surfaces.rs:3:19
+  |
+3 | use cordis_core::{List, list};
+  |                   ^^^^  ^^^^ no `list` in the root
+  |                   |
+  |                   no `List` in the root

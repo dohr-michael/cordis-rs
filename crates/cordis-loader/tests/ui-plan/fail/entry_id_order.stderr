@@ -1,0 +1,11 @@
+error[E0277]: the trait bound `EntryId: Ord` is not satisfied
+ --> tests/ui-plan/fail/entry_id_order.rs:3:26
+  |
+3 | fn main() { assert_ord::<EntryId>(); }
+  |                          ^^^^^^^ the trait `Ord` is not implemented for `EntryId`
+  |
+note: required by a bound in `assert_ord`
+ --> tests/ui-plan/fail/entry_id_order.rs:2:18
+  |
+2 | fn assert_ord<T: Ord>() {}
+  |                  ^^^ required by this bound in `assert_ord`

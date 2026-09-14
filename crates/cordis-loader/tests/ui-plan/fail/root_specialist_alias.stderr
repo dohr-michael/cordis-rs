@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_loader::InjectEntry`
+ --> tests/ui-plan/fail/root_specialist_alias.rs:1:5
+  |
+1 | use cordis_loader::InjectEntry;
+  |     ^^^^^^^^^^^^^^^-----------
+  |                    |
+  |                    no `InjectEntry` in the root

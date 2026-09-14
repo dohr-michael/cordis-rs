@@ -1,0 +1,5 @@
+error[E0599]: no method named `clone` found for struct `ServicePublication<S>` in the current scope
+  --> tests/ui-service/fail/publication_is_move_only.rs:10:29
+   |
+10 |     let _copy = publication.clone();
+   |                             ^^^^^ method not found in `ServicePublication<S>`

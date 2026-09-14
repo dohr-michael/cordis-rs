@@ -1,0 +1,22 @@
+error[E0609]: no field `errors` on type `&ParallelFailures`
+ --> tests/ui/fail/issue33_parallel_failures_opaque.rs:2:61
+  |
+2 | fn inspect(failures: &ParallelFailures) { let _ = &failures.errors; let _ = failures.to_string(); }
+  |                                                             ^^^^^^ unknown field
+
+error[E0599]: the method `to_string` exists for reference `&ParallelFailures`, but its trait bounds were not satisfied
+ --> tests/ui/fail/issue33_parallel_failures_opaque.rs:2:86
+  |
+2 | fn inspect(failures: &ParallelFailures) { let _ = &failures.errors; let _ = failures.to_string(); }
+  |                                                                                      ^^^^^^^^^ method cannot be called on `&ParallelFailures` due to unsatisfied trait bounds
+  |
+ ::: src/events/types.rs
+  |
+  | pub struct ParallelFailures {
+  | --------------------------- doesn't satisfy `ParallelFailures: ToString` or `ParallelFailures: std::fmt::Display`
+  |
+  = note: the following trait bounds were not satisfied:
+          `ParallelFailures: std::fmt::Display`
+          which is required by `ParallelFailures: ToString`
+          `&ParallelFailures: std::fmt::Display`
+          which is required by `&ParallelFailures: ToString`

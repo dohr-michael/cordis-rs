@@ -1,0 +1,26 @@
+[package]
+name = "cordis-core"
+description = "Typed lifecycle, services, events, effects, and observation for the Cordis v3 runtime"
+keywords = ["cordis", "plugin", "events", "lifecycle", "runtime"]
+categories = ["asynchronous", "rust-patterns"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[dependencies]
+# Core stays dependency-clean at the semantic crate seam (ADR 0036): no serde,
+# no serde_json, and no Tokio `time` feature.
+tokio = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+
+[dev-dependencies]
+trybuild = { workspace = true }
+serde = { workspace = true }
+
+[lints]
+workspace = true

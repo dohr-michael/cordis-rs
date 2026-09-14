@@ -1,0 +1,23 @@
+error[E0599]: no associated function or constant named `from_prepared` found for struct `PreparedPlugin` in the current scope
+  --> tests/ui-facade58/fail/removed_from_prepared_constructors.rs:16:29
+   |
+16 |     let _ = PreparedPlugin::from_prepared(P, ());
+   |                             ^^^^^^^^^^^^^ associated function or constant not found in `PreparedPlugin`
+   |
+note: if you're trying to build a new `PreparedPlugin`, consider using `PreparedPlugin::from_input` which returns `PreparedPlugin`
+  --> src/plugin.rs
+   |
+   |     pub fn from_input<P: Plugin>(plugin: P, input: P::Input) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no associated function or constant named `from_prepared` found for struct `PreparedChange` in the current scope
+  --> tests/ui-facade58/fail/removed_from_prepared_constructors.rs:17:29
+   |
+17 |     let _ = PreparedChange::from_prepared::<P>(());
+   |                             ^^^^^^^^^^^^^ associated function or constant not found in `PreparedChange`
+   |
+note: if you're trying to build a new `PreparedChange`, consider using `PreparedChange::from_input` which returns `PreparedChange`
+  --> src/plugin.rs
+   |
+   |     pub fn from_input<P: Plugin>(input: P::Input) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

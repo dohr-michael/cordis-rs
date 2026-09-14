@@ -1,24 +1,41 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = [
+    "crates/cordis",
+    "crates/cordis-core",
+    "crates/cordis-timer",
+    "crates/cordis-loader",
+    "examples/common",
+    "examples/hello_plugin",
+    "examples/gateway",
+    "examples/worker_daemon",
+    "examples/scopes_tenants",
+    "examples/logging_exporters",
+    "examples/chat_capstone",
+]
 
 [workspace.package]
-version = "0.6.2"
+version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/dshbox/cordis-rs"
 
 [workspace.dependencies]
-cordis-cli = { version = "0.0.22", path = "crates/cordis-cli" }
-cordis-group = { version = "0.0.17", path = "crates/cordis-group" }
-cordis-include = { version = "0.0.23", path = "crates/cordis-include" }
-cordis-loader = { version = "0.0.23", path = "crates/cordis-loader" }
-cordis-rs = { version = "0.6.2", path = "crates/cordis" }
-indexmap = { version = "2", features = ["serde"] }
-libloading = "0.8"
-ryu = "1"
+cordis-core = { path = "crates/cordis-core", version = "0.1.0" }
+cordis-timer = { path = "crates/cordis-timer", version = "0.1.0" }
+cordis-loader = { path = "crates/cordis-loader", version = "0.1.0" }
+cordis-rs = { path = "crates/cordis", version = "0.7.0" }
+examples-common = { path = "examples/common" }
+# Core intentionally omits Tokio's `time` feature; time operations belong to
+# cordis-timer, while serde-backed loading belongs to cordis-loader (ADR 0036).
+tokio = { version = "1", default-features = false, features = ["rt", "rt-multi-thread", "sync", "macros"] }
+parking_lot = "0.12"
+thiserror = "2"
+futures = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml_ng = "0.10"
-unsafe-libyaml = "0.2"
+trybuild = "1"
+
+[workspace.lints.rust]
+missing_docs = { level = "warn" }

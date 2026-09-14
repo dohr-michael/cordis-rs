@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `cordis_loader::cordis_core`
+ --> tests/ui-facade59/fail/dependency_reexport.rs:1:20
+  |
+1 | use cordis_loader::cordis_core::Context;
+  |                    ^^^^^^^^^^^ could not find `cordis_core` in `cordis_loader`

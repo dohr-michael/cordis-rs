@@ -1,0 +1,13 @@
+error[E0603]: module `context` is private
+ --> tests/ui-context/fail/context_module_path_is_private.rs:1:18
+  |
+1 | use cordis_core::context::Context;
+  |                  ^^^^^^^  ------- struct `Context` is not publicly re-exported
+  |                  |
+  |                  private module
+  |
+note: the module `context` is defined here
+ --> src/lib.rs
+  |
+  | mod context;
+  | ^^^^^^^^^^^

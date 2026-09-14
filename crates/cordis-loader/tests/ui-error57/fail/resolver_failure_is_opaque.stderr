@@ -1,0 +1,5 @@
+error[E0599]: no method named `downcast_ref` found for reference `&ResolverFailure` in the current scope
+ --> tests/ui-error57/fail/resolver_failure_is_opaque.rs:2:57
+  |
+2 | fn inspect(failure: &ResolverFailure) { let _ = failure.downcast_ref::<std::io::Error>(); }
+  |                                                         ^^^^^^^^^^^^ method not found in `&ResolverFailure`

@@ -1,0 +1,11 @@
+error[E0432]: unresolved imports `cordis_loader::PluginRequest`, `cordis_loader::ResolverFailure`, `cordis_loader::ResolverFailureKind`, `cordis_loader::JsonPrepareError`, `cordis_loader::prepare_plugin_json`, `cordis_loader::prepare_service_json`
+ --> tests/ui-resolver/fail/root_resolver_specialists.rs:1:21
+  |
+1 | use cordis_loader::{PluginRequest, ResolverFailure, ResolverFailureKind, JsonPrepareError, prepare_plugin_json, prepare_service_json};
+  |                     ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^ no `prepare_service_json` in the root
+  |                     |              |                |                    |                 |
+  |                     |              |                |                    |                 no `prepare_plugin_json` in the root
+  |                     |              |                |                    no `JsonPrepareError` in the root
+  |                     |              |                no `ResolverFailureKind` in the root
+  |                     |              no `ResolverFailure` in the root
+  |                     no `PluginRequest` in the root

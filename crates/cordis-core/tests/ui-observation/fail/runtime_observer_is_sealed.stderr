@@ -1,0 +1,36 @@
+error[E0277]: the trait bound `{closure@$DIR/tests/ui-observation/fail/runtime_observer_is_sealed.rs:7:25: 7:60}: RuntimeObserver` is not satisfied
+ --> tests/ui-observation/fail/runtime_observer_is_sealed.rs:7:25
+  |
+7 |     ctx.observe_runtime(|_: Context, _: RuntimeObservation| async { Ok::<_, Infallible>(()) }).unwrap();
+  |         --------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+  |         |
+  |         required by a bound introduced by this call
+  |
+  = help: the trait `observation::runtime_observer_sealed::Sealed` is not implemented for closure `{closure@$DIR/tests/ui-observation/fail/runtime_observer_is_sealed.rs:7:25: 7:60}`
+help: the following other types implement trait `observation::runtime_observer_sealed::Sealed`
+ --> src/events/listener.rs
+  |
+  | / impl<C, Fut, Err> crate::observation::runtime_observer_sealed::Sealed for ObserverAdapter<C, true>
+  | | where
+  | |     C: Fn(Context, crate::observation::RuntimeObservation) -> Fut + Send + Sync + 'static,
+  | |     Fut: Future<Output = Result<(), Err>> + Send + 'static,
+  | |     Err: Error + 'static,
+  | |_________________________^ `cordis_core::events::listener::ObserverAdapter<C, true>`
+...
+  | / impl<C, Err> crate::observation::runtime_observer_sealed::Sealed for ObserverAdapter<C, false>
+  | | where
+  | |     C: Fn(Context, crate::observation::RuntimeObservation) -> Result<(), Err>
+  | |         + Send
+  | |         + Sync
+  | |         + 'static,
+  | |     Err: Error + 'static,
+  | |_________________________^ `cordis_core::events::listener::ObserverAdapter<C, false>`
+  = note: required for `{closure@$DIR/tests/ui-observation/fail/runtime_observer_is_sealed.rs:7:25: 7:60}` to implement `RuntimeObserver`
+note: required by a bound in `cordis_core::Context::observe_runtime`
+ --> src/context.rs
+  |
+  |     pub fn observe_runtime<O>(
+  |            --------------- required by a bound in this associated function
+...
+  |         O: crate::observation::RuntimeObserver,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Context::observe_runtime`

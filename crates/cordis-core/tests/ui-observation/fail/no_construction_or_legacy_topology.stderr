@@ -1,0 +1,53 @@
+warning: unreachable expression
+  --> tests/ui-observation/fail/no_construction_or_legacy_topology.rs:15:32
+   |
+15 |         id: panic!(), service: String::new(), realm: ctx.new_service_realm(),
+   |             --------           ^^^^^^^^^^^^^ unreachable expression
+   |             |
+   |             any code following this expression is unreachable
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `as_u64` found for reference `&ServicePublicationId` in the current scope
+  --> tests/ui-observation/fail/no_construction_or_legacy_topology.rs:19:16
+   |
+19 |     let _ = id.as_u64();
+   |                ^^^^^^ method not found in `&ServicePublicationId`
+
+error[E0308]: mismatched types
+  --> tests/ui-observation/fail/no_construction_or_legacy_topology.rs:20:40
+   |
+20 |     let _ = ServicePublicationId::from(1_u64);
+   |             -------------------------- ^^^^^ expected `ServicePublicationId`, found `u64`
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> $RUST/core/src/convert/mod.rs
+   |
+   |     fn from(value: T) -> Self;
+   |        ^^^^
+
+error[E0599]: no method named `registry_snapshot` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-observation/fail/no_construction_or_legacy_topology.rs:21:17
+   |
+21 |     let _ = ctx.registry_snapshot();
+   |                 ^^^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `services_snapshot` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-observation/fail/no_construction_or_legacy_topology.rs:22:17
+   |
+22 |     let _ = ctx.services_snapshot();
+   |                 ^^^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `live_fiber_count` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-observation/fail/no_construction_or_legacy_topology.rs:23:17
+   |
+23 |     let _ = ctx.live_fiber_count();
+   |                 ^^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `pending_missing` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-observation/fail/no_construction_or_legacy_topology.rs:24:17
+   |
+24 |     let _ = ctx.pending_missing();
+   |                 ^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`

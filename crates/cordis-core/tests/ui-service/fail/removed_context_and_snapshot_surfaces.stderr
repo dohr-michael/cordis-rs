@@ -1,0 +1,40 @@
+error[E0425]: cannot find type `ServiceRecord` in module `cordis_core::service`
+  --> tests/ui-service/fail/removed_context_and_snapshot_surfaces.rs:12:41
+   |
+12 |     let _: Option<cordis_core::service::ServiceRecord> = None;
+   |                                         ^^^^^^^^^^^^^
+   |
+  ::: src/service.rs
+   |
+   | pub struct ServiceRealm {
+   | ----------------------- similarly named struct `ServiceRealm` defined here
+   |
+help: a struct with a similar name exists
+   |
+12 -     let _: Option<cordis_core::service::ServiceRecord> = None;
+12 +     let _: Option<cordis_core::service::ServiceRealm> = None;
+   |
+
+error[E0599]: no method named `set_service` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui-service/fail/removed_context_and_snapshot_surfaces.rs:9:9
+  |
+9 |     ctx.set_service(Arc::new(S));
+  |         ^^^^^^^^^^^
+  |
+help: there is a method `try_service` with a similar name, but with different arguments
+ --> src/service.rs
+  |
+  |     pub fn try_service<S: Service>(&self) -> std::result::Result<Arc<S>, ServiceLookupError> {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `remove_service` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-service/fail/removed_context_and_snapshot_surfaces.rs:10:9
+   |
+10 |     ctx.remove_service::<S>();
+   |         ^^^^^^^^^^^^^^ method not found in `cordis_core::Context`
+
+error[E0599]: no method named `services_snapshot` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui-service/fail/removed_context_and_snapshot_surfaces.rs:11:17
+   |
+11 |     let _ = ctx.services_snapshot();
+   |                 ^^^^^^^^^^^^^^^^^ method not found in `cordis_core::Context`

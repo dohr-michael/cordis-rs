@@ -1,0 +1,66 @@
+error[E0277]: the trait bound `MoveOnly: Clone` is not satisfied
+  --> tests/ui/fail/issue34_waterfall_query_requires_clone.rs:20:35
+   |
+20 |     let _ = ctx.waterfall_query::<Flow, Query, _, _, Infallible>(
+   |                                   ^^^^ the trait `Clone` is not implemented for `MoveOnly`
+   |
+note: required by a bound in `cordis_core::events::dispatch::<impl cordis_core::Context>::waterfall_query`
+  --> src/events/dispatch.rs
+   |
+   |     pub async fn waterfall_query<E, Q, R, Fut, Err>(
+   |                  --------------- required by a bound in this associated function
+...
+   |         E::Args: Clone,
+   |                  ^^^^^ required by this bound in `cordis_core::events::dispatch::<impl Context>::waterfall_query`
+help: consider annotating `MoveOnly` with `#[derive(Clone)]`
+   |
+ 6 + #[derive(Clone)]
+ 7 | struct MoveOnly(String);
+   |
+
+error[E0277]: the trait bound `MoveOnly: Clone` is not satisfied
+  --> tests/ui/fail/issue34_waterfall_query_requires_clone.rs:20:13
+   |
+20 |       let _ = ctx.waterfall_query::<Flow, Query, _, _, Infallible>(
+   |  _____________^
+21 | |         Routing::Unscoped,
+22 | |         MoveOnly(String::new()),
+23 | |         |result| async move {
+24 | |             Ok(match result.unwrap() { QueryOutcome::Miss => 0, QueryOutcome::Answer(value) => value })
+25 | |         },
+26 | |     ).await;
+   | |_____^ the trait `Clone` is not implemented for `MoveOnly`
+   |
+note: required by a bound in `cordis_core::events::dispatch::<impl cordis_core::Context>::waterfall_query`
+  --> src/events/dispatch.rs
+   |
+   |     pub async fn waterfall_query<E, Q, R, Fut, Err>(
+   |                  --------------- required by a bound in this associated function
+...
+   |         E::Args: Clone,
+   |                  ^^^^^ required by this bound in `cordis_core::events::dispatch::<impl Context>::waterfall_query`
+help: consider annotating `MoveOnly` with `#[derive(Clone)]`
+   |
+ 6 + #[derive(Clone)]
+ 7 | struct MoveOnly(String);
+   |
+
+error[E0277]: the trait bound `MoveOnly: Clone` is not satisfied
+  --> tests/ui/fail/issue34_waterfall_query_requires_clone.rs:26:7
+   |
+26 |     ).await;
+   |       ^^^^^ the trait `Clone` is not implemented for `MoveOnly`
+   |
+note: required by a bound in `cordis_core::events::dispatch::<impl cordis_core::Context>::waterfall_query`
+  --> src/events/dispatch.rs
+   |
+   |     pub async fn waterfall_query<E, Q, R, Fut, Err>(
+   |                  --------------- required by a bound in this associated function
+...
+   |         E::Args: Clone,
+   |                  ^^^^^ required by this bound in `cordis_core::events::dispatch::<impl Context>::waterfall_query`
+help: consider annotating `MoveOnly` with `#[derive(Clone)]`
+   |
+ 6 + #[derive(Clone)]
+ 7 | struct MoveOnly(String);
+   |

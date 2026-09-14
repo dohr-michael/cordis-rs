@@ -2,10 +2,10 @@ name: CI
 
 on:
   push:
+    branches: [main, v3]
   pull_request:
   workflow_dispatch:
   schedule:
-    # Weekly, Monday 03:00 UTC: catch advisories published between releases.
     - cron: "0 3 * * 1"
 
 permissions:
@@ -21,138 +21,85 @@ env:
 
 jobs:
   msrv:
-    name: MSRV (Rust 1.85)
+    name: MSRV (Rust 1.88)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Install Rust 1.85
-        uses: dtolnay/rust-toolchain@1.85.0
-
-      - name: Check all targets and features
-        run: cargo check --locked --workspace --all-targets --all-features
-
-      - name: Run tests
-        run: cargo test --locked --workspace --all-features
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - run: cargo check --locked --workspace --all-targets
 
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Install cargo-audit
-        uses: taiki-e/install-action@v2
+      - uses: actions/checkout@v5
+      - uses: taiki-e/install-action@v2
         with:
           tool: cargo-audit
-
-      - name: Audit dependencies for RUSTSEC advisories
-        run: cargo audit --deny warnings
+      - run: cargo audit --deny warnings
 
   test:
     name: Test stable (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Install latest stable Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Run tests
-        run: cargo test --locked --workspace --all-features
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --locked --workspace
 
   quality:
-    name: Formatting, Clippy, and docs
+    name: Formatting, Clippy, docs, vocabulary
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Install latest stable Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Run Clippy
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-
-      - name: Build API documentation
-        run: cargo doc --locked --workspace --no-deps --all-features
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: ci/harness-vocab-scan.sh
+      - run: cargo doc --locked --workspace --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
 
-      - name: Build library for README tests
-        run: cargo build --locked --workspace --all-features
+  examples:
+    name: Run examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --locked --workspace
+      - run: timeout --kill-after=5s 120 cargo run -p hello_plugin
+      - run: timeout --kill-after=5s 120 cargo run -p gateway
+      - run: timeout --kill-after=5s 120 cargo run -p worker_daemon
+      - run: timeout --kill-after=5s 120 cargo run -p scopes_tenants
+      - run: timeout --kill-after=5s 120 cargo run -p logging_exporters
+      - run: timeout --kill-after=5s 120 cargo run -p chat_capstone
 
-      - name: Test English README examples
-        run: >-
-          rustdoc --test README.md --edition 2024
-          -L dependency=target/debug/deps
-          --extern cordis=target/debug/libcordis.rlib
-
-      - name: Test Chinese README examples
-        run: >-
-          rustdoc --test README.zh-CN.md --edition 2024
-          -L dependency=target/debug/deps
-          --extern cordis=target/debug/libcordis.rlib
-
-      - name: Test cordis-include README examples
-        run: >-
-          rustdoc --test crates/cordis-include/README.md --edition 2024
-          -L dependency=target/debug/deps
-          --extern cordis=target/debug/libcordis.rlib
-          --extern cordis_include=target/debug/libcordis_include.rlib
-
-      - name: Test cordis-include Chinese README examples
-        run: >-
-          rustdoc --test crates/cordis-include/README.zh-CN.md --edition 2024
-          -L dependency=target/debug/deps
-          --extern cordis=target/debug/libcordis.rlib
-          --extern cordis_include=target/debug/libcordis_include.rlib
-
-      - name: Test cordis-group README examples
-        run: >-
-          rustdoc --test crates/cordis-group/README.md --edition 2024
-          -L dependency=target/debug/deps
-          --extern cordis=target/debug/libcordis.rlib
-          --extern cordis_group=target/debug/libcordis_group.rlib
-
-      - name: Test cordis-group Chinese README examples
-        run: >-
-          rustdoc --test crates/cordis-group/README.zh-CN.md --edition 2024
-          -L dependency=target/debug/deps
-          --extern cordis=target/debug/libcordis.rlib
-          --extern cordis_group=target/debug/libcordis_group.rlib
-
-      - name: Test cordis-loader README examples
-        run: >-
-          rustdoc --test crates/cordis-loader/README.md --edition 2024
-          -L dependency=target/debug/deps
-          --extern cordis=target/debug/libcordis.rlib
-          --extern cordis_include=target/debug/libcordis_include.rlib
-          --extern cordis_loader=target/debug/libcordis_loader.rlib
-
-      - name: Test cordis-loader Chinese README examples
-        run: >-
-          rustdoc --test crates/cordis-loader/README.zh-CN.md --edition 2024
-          -L dependency=target/debug/deps
-          --extern cordis=target/debug/libcordis.rlib
-          --extern cordis_include=target/debug/libcordis_include.rlib
-          --extern cordis_loader=target/debug/libcordis_loader.rlib
+  package:
+    name: Package release crates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Core can be fully verified before first publication. Cargo cannot build
+      # leaf .crate archives until cordis-core 0.1 exists in crates.io, so the
+      # staging branch validates their package file sets instead. Promote these
+      # three list checks to full `cargo package` after core 0.1 is published.
+      - run: cargo package --locked -p cordis-core
+      - run: cargo package --list -p cordis-timer > /dev/null
+      - run: cargo package --list -p cordis-loader > /dev/null
+      - run: cargo package --list -p cordis-rs > /dev/null

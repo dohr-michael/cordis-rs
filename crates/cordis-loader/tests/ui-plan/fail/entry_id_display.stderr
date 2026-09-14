@@ -1,0 +1,8 @@
+error[E0277]: `EntryId` doesn't implement `std::fmt::Display`
+ --> tests/ui-plan/fail/entry_id_display.rs:5:22
+  |
+5 |     let _ = format!("{id}");
+  |                      ^^^^ `EntryId` cannot be formatted with the default formatter
+  |
+  = help: the trait `std::fmt::Display` is not implemented for `EntryId`
+  = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead

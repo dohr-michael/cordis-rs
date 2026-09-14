@@ -1,0 +1,5 @@
+error[E0599]: no method named `shutdown` found for reference `&cordis_core::Context` in the current scope
+ --> tests/ui-lifecycle/fail/removed_runtime_shutdown.rs:4:9
+  |
+4 |     ctx.shutdown().await;
+  |         ^^^^^^^^ method not found in `&cordis_core::Context`

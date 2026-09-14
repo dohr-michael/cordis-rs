@@ -1,0 +1,76 @@
+error[E0433]: cannot find `internal` in `cordis_core`
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:10:26
+   |
+10 |     let _ = cordis_core::internal::InternalPlugin;
+   |                          ^^^^^^^^ could not find `internal` in `cordis_core`
+
+error[E0433]: cannot find `DispatchMode` in `cordis_core`
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:12:26
+   |
+12 |     let _ = cordis_core::DispatchMode::Serial;
+   |                          ^^^^^^^^^^^^ could not find `DispatchMode` in `cordis_core`
+
+error[E0425]: cannot find value `InternalDispatch` in crate `cordis_core`
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:11:26
+   |
+11 |     let _ = cordis_core::InternalDispatch;
+   |                          ^^^^^^^^^^^^^^^^ not found in `cordis_core`
+
+error[E0277]: the trait bound `RuntimeObservation: Event` is not satisfied
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:13:21
+   |
+13 |     require_event::<RuntimeObservation>();
+   |                     ^^^^^^^^^^^^^^^^^^ the trait `Event` is not implemented for `RuntimeObservation`
+   |
+note: required by a bound in `require_event`
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:5:21
+   |
+ 5 | fn require_event<E: Event>() {}
+   |                     ^^^^^ required by this bound in `require_event`
+
+error[E0277]: the trait bound `RuntimeObservation: Plugin` is not satisfied
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:14:22
+   |
+14 |     require_plugin::<RuntimeObservation>();
+   |                      ^^^^^^^^^^^^^^^^^^ the trait `Plugin` is not implemented for `RuntimeObservation`
+   |
+help: the trait `Plugin` is implemented for `Arc<P>`
+  --> src/plugin.rs
+   |
+   | impl<P: Plugin + Sync> Plugin for Arc<P> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: required by a bound in `require_plugin`
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:6:22
+   |
+ 6 | fn require_plugin<P: Plugin>() {}
+   |                      ^^^^^^ required by this bound in `require_plugin`
+
+error[E0599]: `EventOperation` doesn't implement `std::fmt::Display`
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:15:34
+   |
+15 |     let _ = EventOperation::Emit.to_string();
+   |                                  ^^^^^^^^^ method cannot be called on `EventOperation` due to unsatisfied trait bounds
+   |
+  ::: src/events/types.rs
+   |
+   | pub enum EventOperation {
+   | ----------------------- doesn't satisfy `EventOperation: ToString` or `EventOperation: std::fmt::Display`
+   |
+   = note: the following trait bounds were not satisfied:
+           `EventOperation: std::fmt::Display`
+           which is required by `EventOperation: ToString`
+
+error[E0599]: `DispatchOutcomeKind` doesn't implement `std::fmt::Display`
+  --> tests/ui-observation/fail/retired_internal_observation_surface.rs:16:44
+   |
+16 |     let _ = DispatchOutcomeKind::Completed.to_string();
+   |                                            ^^^^^^^^^ method cannot be called on `DispatchOutcomeKind` due to unsatisfied trait bounds
+   |
+  ::: src/events/types.rs
+   |
+   | pub enum DispatchOutcomeKind {
+   | ---------------------------- doesn't satisfy `DispatchOutcomeKind: ToString` or `DispatchOutcomeKind: std::fmt::Display`
+   |
+   = note: the following trait bounds were not satisfied:
+           `DispatchOutcomeKind: std::fmt::Display`
+           which is required by `DispatchOutcomeKind: ToString`

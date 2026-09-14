@@ -1,24 +1,28 @@
 [package]
 name = "cordis-loader"
-version = "0.0.23"
-description = "Config-file driven plugin loader for the cordis-rs plugin framework"
-keywords = ["cordis", "plugin", "loader", "config", "lifecycle"]
+description = "Immutable declarative loading plans and typed resolution for Cordis v3"
+keywords = ["cordis", "plugin", "loader", "config"]
 categories = ["config", "rust-patterns"]
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
 
-[features]
-default = []
-# Hot reload of the entry file through cordis-include's watcher.
-watch = ["cordis-include/watch"]
-# Dynamic-library plugins: resolve entry names from .so/.dylib/.dll files.
-dynamic = ["dep:libloading"]
-
 [dependencies]
-cordis-group.workspace = true
-cordis-include.workspace = true
-cordis-rs.workspace = true
-libloading = { workspace = true, optional = true }
+cordis-core = { workspace = true }
+# Private result-handoff completion uses core-compatible async driving only;
+# Loader owns no time policy.
+futures = { workspace = true }
+tokio = { workspace = true }
+# serde/serde_json stay in the loader and never enter core (ADR 0036).
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+trybuild = { workspace = true }

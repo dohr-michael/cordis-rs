@@ -1,388 +1,358 @@
-# cordis-rs
+# Cordis
 
 **English** | [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/dshbox/cordis-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/dshbox/cordis-rs/actions/workflows/ci.yml)
 
-A runtime-agnostic Rust port of Cordis 4.x — the plugin framework at the core of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), vendored there as [`@deepseek-ai/cordis`](https://github.com/deepseek-ai/deepseek-harness/tree/master/vendor/cordis).
+Cordis is a typed runtime for long-lived, plugin-oriented Rust applications.
+It gives application components one model for lifecycle, service dependencies,
+typed events, resource cleanup, and explicit isolation boundaries.
 
-> This implementation is based on Cordis 4.0.1 from DeepSeek Harness. Its core structure mirrors the original `Context / Events / Fiber / Logger / Reflect / Registry / Service` modules and preserves automatic activation when dependencies arrive, automatic unloading when dependencies disappear, scoped isolation, effect cleanup, and all five event dispatch modes as closely as Rust allows.
-
-Cordis is a context-based plugin framework for applications that need explicit dependency injection, scoped services, lifecycle-managed cleanup, structured events, and configuration-driven plugins. `cordis-rs` preserves that model while replacing JavaScript-only mechanisms (Proxy, prototype inheritance, callable objects, decorators, and `any`) with explicit Rust APIs, `Arc`, and checked downcasts.
-
-## Status
-
-> **Legacy transition.** The `0.6.x` line is entering maintenance mode while the project moves to the v3 runtime architecture. No new features are planned for `0.6.x`; this line is reserved for critical bug fixes and security fixes. v3 development will continue on a dedicated branch before becoming the default development line.
-
-The `0.6.x` API remains available for existing users, but new development should target v3 once that release line is published. This project remains pre-1.0, and the v3 transition is intentionally a breaking architectural boundary.
-
-The `0.6.x` crate ports the complete **core runtime**:
-
-| TypeScript Cordis | Rust API | Status |
-| --- | --- | --- |
-| `new Context()` / `extend()` | `Context::new()` / `extend()` | ✅ |
-| `isolate()` and shared labels | `isolate()` / `isolate_with()` | ✅ |
-| `intercept()` | `intercept()` / `intercepts()` | ✅ |
-| Proxy-backed `get/set/provide` | typed `get/require/set/provide` | ✅ |
-| Accessor and mixin reflection | `accessor()` and explicit `alias()` | ✅¹ |
-| Function/object/class plugins | `Plugin`, `plugin_sync`, `plugin_async`, service adapters | ✅ |
-| `inject` dependency epochs | `Inject` and automatic unload/reload | ✅ |
-| `FiberState`, `try_wait`, `restart`, `update`, `dispose` | same lifecycle operations | ✅ |
-| Sync/async/generator effects | sync/async disposers and nested effect handles | ✅² |
-| `emit/parallel/serial/bail/waterfall` | same five dispatch modes | ✅ |
-| Context listener filters | `with_filter()` / `emit_from()` | ✅ |
-| Logger buffer/exporters/levels/formatters | corresponding logger APIs | ✅ |
-| Standard Schema validation | `Plugin::validate_config` + validation issues | ✅³ |
-| `internal/plugin`, `internal/status`, `internal/service`, `internal/dispatch` | same meta-events | ✅⁴ |
-| Intercept meta-events (`internal/get`/`set`/`config`/`update`/`listener`) | same five interception points | ✅⁵ |
-| Decorators and callable services | explicit Rust traits/builders | Rust-native |
-| Loader / include packages | [`cordis-include`](../crates/cordis-include), [`cordis-group`](../crates/cordis-group), [`cordis-loader`](../crates/cordis-loader), [`cordis-cli`](../crates/cordis-cli) | ✅ separate crates |
-
-1. Rust cannot dynamically project arbitrary struct fields like a JavaScript Proxy, so `alias()` is the explicit counterpart to common `mixin()` usage.
-2. Rust plugin code registers multiple effects explicitly; `EffectHandle::adopt()` provides the original nested diagnostic/disposal tree.
-3. Validation is trait-based because Standard Schema is a JavaScript protocol.
-4. `internal/dispatch` carries `(mode, name, args)`; the upstream fourth `thisArg` argument is omitted.
-5. The five interception points used by upstream HMR and config injection are ported with Rust-native semantics: `internal/get` (waterfall around strict service reads), `internal/set` (waterfall around service writes), `internal/config` (waterfall around config resolution; the effective config is the waterfall's result), `internal/update` (waterfall around the restart an update schedules), and `internal/listener` (bail whose value cancels a registration, returning an inert handle). Arguments are immutable `Value`s — listeners wrap through `Event::call_next()` or veto by skipping it.
-
-## Design goals
-
-- **Faithful lifecycle:** a plugin remains `Pending` until every injected service is active. Replacing/removing a provider changes the dependency epoch, unloads the consumer, and starts it again when possible.
-- **Scoped DI:** isolated branches resolve different implementations of the same service. Reusing an `Isolation` label joins scopes.
-- **Ownership-based cleanup:** plugins, listeners, services, exporters, accessors, and child plugins are effects of their creating fiber.
-- **No executor lock-in:** the crate has no third-party dependencies. Futures are accepted through boxed standard-library futures; eager lifecycle operations use a small wake-aware executor.
-- **Type-checked dynamic values:** service, config, and event storage uses `Value` (`Arc<dyn Any + Send + Sync>`) with checked downcasting and useful type errors.
+Cordis is useful when your program is more than a collection of short-lived
+function calls: plugins can appear and disappear, services can become available
+or unavailable, configuration can change, and runtime resources must still be
+cleaned up deterministically.
 
 ## Install
 
-```sh
-cargo add cordis-rs
-```
+For applications, keep the historical package and import identity:
 
 ```toml
 [dependencies]
-cordis-rs = "0.4"
+cordis-rs = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ```
 
-The package is published as `cordis-rs`; the library crate is still named `cordis`, so imports remain `use cordis::...`.
+```rust
+use cordis::Context;
+```
 
-The minimum supported Rust version (MSRV) is **Rust 1.85**, and the crate uses **Rust 2024 Edition**. The crate has no external dependencies.
+`cordis-rs` is now a thin application-facing facade over the v3 runtime contract.
+Framework and plugin authors may depend on that contract directly:
 
-## Rust version policy
+```toml
+[dependencies]
+cordis-core = "0.1"
+```
 
-- **MSRV:** Rust 1.85. CI and releases must continue to compile and test on this exact version.
-- **Development toolchain:** the latest stable Rust release is used for formatting, Clippy, documentation, and forward-compatibility testing.
-- **Review cadence:** the MSRV is reviewed every six months, around February and August. A review does not imply an automatic version increase.
-- **Review factors:** maintainers consider the compiler shipped by stable Linux distributions, requirements of official plugins and downstream projects, useful language or standard-library improvements, dependency/security constraints, and toolchain versions actually used by downstream users.
-- **Version changes:** the MSRV is raised only when there is a concrete maintenance or ecosystem benefit. An increase is documented in the changelog and release notes and is made in a minor release, never silently in a patch release.
-- **Workspace consistency:** official Cordis crates and plugins should use one shared MSRV unless a documented platform constraint requires an exception.
+Optional capabilities stay explicit semantic dependencies:
+
+```toml
+cordis-timer = "0.1"
+cordis-loader = "0.1"
+```
+
+Cordis v3 requires Rust **1.88** or newer and uses Rust 2024 Edition.
+
+## Migrating from 0.6.x
+
+`cordis-rs 0.7` is the first release line backed by the v3 runtime architecture.
+The `0.6.x` implementation remains on the `legacy/0.6` maintenance branch for
+critical bug and security fixes. The v3 transition is intentionally breaking;
+see [`MIGRATION.md`](MIGRATION.md) and [`docs/v3-migration.md`](docs/v3-migration.md).
+
+## The mental model
+
+Five types carry most of the public model:
+
+- **`Context`** — a cheap immutable view into one Cordis Runtime.
+- **`Plugin`** — reusable behavior with typed source configuration and runtime input.
+- **`Fork`** — the lifecycle handle for one admitted non-root Fiber.
+- **`Service`** — a typed, named capability published into an exact service realm.
+- **`Event`** — a typed runtime communication contract with explicit routing.
+
+A Plugin enters the Runtime through a deliberate boundary:
+
+```text
+Config
+  │
+  │ Plugin::prepare()
+  ▼
+Input
+  │
+  │ PreparedPlugin::from_input(...)
+  ▼
+PreparedPlugin
+  │
+  │ Context::spawn(...)
+  ▼
+Fork / Fiber
+```
+
+`prepare()` runs before lifecycle admission. `spawn()` is the first operation
+allowed to create Runtime lifecycle state.
 
 ## Quick start
 
+The smallest complete flow is: define an Event, define a Plugin, prepare and
+spawn it, dispatch the Event, then explicitly dispose the returned Fork.
+
 ```rust
-use cordis::{plugin_sync, Context, Inject, LogArg, PluginOutput, Result, Service};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::convert::Infallible;
 
-struct Counter(AtomicUsize);
+use cordis::event::{ListenerRegistrationError, observer_sync};
+use cordis::{BoxError, Context, Event, Plugin, PreparedPlugin, Routing};
 
-impl Service for Counter {
-    const NAME: &'static str = "counter";
+struct Ping;
+
+impl Event for Ping {
+    const NAME: &'static str = "ping";
+    type Args = String;
+    type Output = ();
 }
 
-fn main() -> Result<()> {
-    let root = Context::new();
-    let counter = Arc::new(Counter(AtomicUsize::new(0)));
-    let _provider = root.provide_service_arc(counter.clone())?;
+struct Echo;
+struct EchoInput;
 
-    let greeter = plugin_sync::<(), _>(
-        "greeter",
-        Inject::new(["counter"]),
-        |ctx, _config| {
-            let counter = ctx.require::<Counter>("counter")?;
-            let value = counter.0.fetch_add(1, Ordering::SeqCst) + 1;
-            ctx.logger().info(
-                "%s #%d",
-                [LogArg::from("started"), LogArg::from(value)],
-            );
-            Ok(PluginOutput::none())
-        },
-    );
+impl Plugin for Echo {
+    type Config = ();
+    type Input = EchoInput;
+    type PrepareError = Infallible;
+    type ApplyError = ListenerRegistrationError;
 
-    let fiber = root.plugin_default(greeter);
-    fiber.try_wait()?;
-    assert_eq!(counter.0.load(Ordering::SeqCst), 1);
+    fn prepare(&self, (): ()) -> Result<Self::Input, Self::PrepareError> {
+        Ok(EchoInput)
+    }
 
-    fiber.dispose()?;
-    root.fiber()?.dispose()?;
-    Ok(())
-}
-```
-
-## Dependency injection and reload
-
-`Inject` controls whether a plugin may be active. Service changes reconcile consumers immediately and deterministically.
-
-```rust
-use cordis::{plugin_sync, Context, FiberState, Inject, PluginOutput, Result};
-
-fn main() -> Result<()> {
-    let root = Context::new();
-    let consumer = plugin_sync::<(), _>(
-        "consumer",
-        Inject::new(["database"]),
-        |ctx, _| {
-            println!("database = {}", *ctx.require::<String>("database")?);
-            Ok(PluginOutput::infallible(|| println!("consumer unloaded")))
-        },
-    );
-
-    let fiber = root.plugin_default(consumer);
-    assert_eq!(fiber.state(), FiberState::Pending);
-
-    let database = root.provide("database", "sqlite://app.db".to_owned())?;
-    assert_eq!(fiber.state(), FiberState::Active);
-
-    database.dispose()?;
-    assert_eq!(fiber.state(), FiberState::Pending);
-    Ok(())
-}
-```
-
-A plugin can attach per-service intercept config as part of its inject declaration:
-
-```rust
-use cordis::{Inject, LoggerIntercept, LoggerLevel};
-
-let inject = Inject::new(["database"]).require_with(
-    "logger",
-    LoggerIntercept {
-        name: Some("worker".into()),
-        level: Some(LoggerLevel::Debug),
-    },
-);
-```
-
-## Scoped services
-
-```rust
-use cordis::{Context, Result};
-
-fn main() -> Result<()> {
-    let root = Context::new();
-    let label = root.new_isolation();
-    let tenant_a = root.isolate_with("cache", label);
-    let tenant_a_worker = root.isolate_with("cache", label);
-    let tenant_b = root.isolate("cache");
-
-    let _cache = tenant_a.provide("cache", String::from("A"))?;
-    assert_eq!(tenant_a_worker.require::<String>("cache")?.as_str(), "A");
-    assert!(tenant_b.get::<String>("cache")?.is_none());
-    assert!(root.get::<String>("cache")?.is_none());
-    Ok(())
-}
-```
-
-## Effects
-
-Every effect is single-shot and fiber-owned. Fiber unloading runs effects in reverse registration order. Cleanup errors are logged and do not prevent the remaining effects from running.
-
-```rust
-use cordis::{Context, Result};
-
-let root = Context::new();
-let handle = root.effect_infallible("temporary file", || {
-    // remove the file
-})?;
-
-assert_eq!(handle.meta().label, "temporary file");
-handle.dispose()?; // early cleanup
-handle.dispose()?; // no-op
-# Ok::<(), cordis::CordisError>(())
-```
-
-Use `effect_async()` or `AsyncDisposer::from_async()` for asynchronous cleanup. A child plugin, listener, provided service, logger exporter, or accessor is internally registered as the same kind of effect.
-
-## Events
-
-Arguments and bail values are `Value`s. `None` means “continue”; `Some(value)` means “bail”.
-
-```rust
-use cordis::utils::block_on;
-use cordis::{Context, Result, Value};
-
-let root = Context::new();
-let _listener = root.on("math/double", |event| {
-    let input = event.arg::<u32>(0)?.unwrap();
-    Ok(Some(Value::new(*input * 2)))
-})?;
-
-let answer = root.events()
-    .bail("math/double", [Value::new(21_u32)])?
-    .unwrap()
-    .downcast::<u32>()?;
-assert_eq!(*answer, 42);
-
-block_on(root.events().parallel("tick", []))?;
-# Ok::<(), cordis::CordisError>(())
-```
-
-Dispatch modes:
-
-- `emit`: invoke in order and synchronously propagate the first error.
-- `parallel`: poll every listener concurrently and aggregate errors.
-- `serial`: await in order and stop on the first bail value.
-- `bail`: synchronous ordered bail.
-- `waterfall` / `waterfall_async`: each listener receives `event.call_next()` and may wrap or veto the rest of the chain.
-
-## Reflection
-
-Normal Rust code should prefer typed services. `Value`, `Accessor`, and `alias()` support dynamic framework/loader use cases:
-
-```rust
-use cordis::{Accessor, Context, Result, Value};
-use std::sync::{Arc, Mutex};
-
-let root = Context::new();
-let state = Arc::new(Mutex::new(1_u32));
-let read = state.clone();
-let write = state.clone();
-
-let _property = root.accessor("answer", Accessor::read_write(
-    move |_| Ok(Some(Value::new(*read.lock().unwrap()))),
-    move |_, value| {
-        *write.lock().unwrap() = *value.downcast::<u32>()?;
+    async fn apply(
+        &self,
+        ctx: Context,
+        _input: &Self::Input,
+    ) -> Result<(), Self::ApplyError> {
+        let _listener = ctx.on::<Ping, _>(observer_sync(|_, name| {
+            println!("hello, {name}");
+            Ok::<_, Infallible>(())
+        }))?;
         Ok(())
-    },
-))?;
-
-root.set("answer", 42_u32)?;
-assert_eq!(*root.require::<u32>("answer")?, 42);
-# Ok::<(), cordis::CordisError>(())
-```
-
-## Logger
-
-The logger keeps a bounded chronological buffer and sends structured `Message`s to effect-owned exporters. It supports Cordis placeholders (`%s`, `%d`, `%i`, `%f`, `%o`, `%O`, `%c`, `%C`, and `%%`), per-name levels, custom formatters, ANSI name colors, and logger intercepts.
-
-```rust
-use cordis::{default_format, Context, ExporterConfig, LogArg, LoggerLevel, Result};
-
-let root = Context::new();
-let mut config = ExporterConfig::default();
-config.levels.insert("default".into(), LoggerLevel::Debug);
-let render = config.clone();
-let _exporter = root.logger_service().exporter_with(config, move |message| {
-    println!("{}", default_format(&render, message));
-})?;
-
-root.named_logger("app").info("listening on %d", [LogArg::from(8080)]);
-# Ok::<(), cordis::CordisError>(())
-```
-
-## Writing a custom plugin
-
-Closure adapters cover most plugins. Dynamic loaders can implement the object-safe trait directly:
-
-```rust
-use cordis::utils::BoxFuture;
-use cordis::{Config, Context, Inject, Plugin, PluginOutput, Result};
-
-struct Worker {
-    inject: Inject,
-}
-
-impl Plugin for Worker {
-    fn name(&self) -> &str { "worker" }
-    fn inject(&self) -> &Inject { &self.inject }
-
-    fn apply(&self, ctx: Context, _config: Config)
-        -> BoxFuture<Result<PluginOutput>>
-    {
-        Box::pin(async move {
-            let _queue = ctx.require::<String>("queue")?;
-            Ok(PluginOutput::none())
-        })
     }
 }
+
+#[tokio::main]
+async fn main() -> Result<(), BoxError> {
+    let ctx = Context::new();
+
+    let plugin = Echo;
+    let input = plugin.prepare(())?;
+    let prepared = PreparedPlugin::from_input(plugin, input);
+    let fork = ctx.spawn(prepared).await?;
+
+    ctx.emit::<Ping>(Routing::Unscoped, "world".into()).await?;
+
+    fork.dispose().await?;
+    Ok(())
+}
 ```
 
-Override `validate_config()` to normalize config or return `CordisError::validation(...)`. `service_sync()` and `service_async()` adapt constructors returning a type that implements `Service`.
+Run the repository's complete version with:
 
-## Runtime notes
+```bash
+cargo run -p hello_plugin
+```
 
-The original TypeScript implementation schedules lifecycle work through promises. This crate deliberately reconciles lifecycle transitions eagerly: `provide`, effect disposal, `restart`, and `update` return after affected fibers settle. This makes behavior deterministic without requiring Tokio or another executor. async event modes, async plugins, and async disposers remain available; `dispose_async` is a synchronous pass-through that never yields — awaiting them blocks the calling thread for the duration.
+## Lifecycle and convergence
 
-Executor-independent futures work everywhere. If a future creates runtime-specific resources (for example `tokio::time::sleep`), call Cordis while that runtime is entered.
+A successful `Context::spawn()` returns a `Fork` only after the new Fiber has
+settled for the current service snapshot. The stable result is normally:
 
-Two consequences of the eager model: `Fiber::try_wait()` reports the settled state instead of suspending until dependencies arrive — it returns an error for `Pending` or disposed fibers. And futures driven by Cordis run on a small blocking executor while a lifecycle transition lock is held, so plugin `apply` callbacks and disposers must only await work that completes on other threads (never same-thread channels or `spawn_blocking` joins).
+- **Active** — all required Services are available and `apply()` succeeded.
+- **Pending** — a required Service is currently unavailable; `apply()` has not run.
 
-`Fiber::update()` mirrors upstream on inactive fibers: on an `Active` fiber it validates the new config, restarts, and reports the startup outcome; on a `Pending` or `Failed` fiber it stores the config and reconciles without waiting, so `Ok(())` only means the config was accepted — inspect `state()`/`error()` for the outcome of the activation it schedules.
+Requirements are declared with `InjectSpec`. They are lifecycle prerequisites,
+not constructor injection. When an exact required Service publication appears or
+disappears, Cordis converges affected Fibers toward their new stable state.
 
-A panic in a plugin `apply`, disposer, or event listener propagates to the caller of the lifecycle operation that triggered it. Internal mutexes recover from poisoning, and a fiber interrupted mid-transition stays in `Loading`/`Unloading` — with already-registered effects still owned — until the next lifecycle event or `dispose` settles it. `Context` and `Fiber` do not implement `UnwindSafe` because their trait objects cannot prove it; when a plugin must not take down its caller, isolate it with `std::panic::catch_unwind(std::panic::AssertUnwindSafe(...))`.
+A `Fork` exposes the main lifecycle operations:
 
-## Ecosystem
+- `ready()` waits for the current stable state.
+- `restart()` reapplies the current committed input on the same Fiber.
+- `update(PreparedChange)` attempts a precommit-controlled typed input replacement; a committed update keeps the same Fiber.
+- `era_swap(PreparedChange)` performs identity-breaking replacement; a successful successor has a fresh Fiber identity.
+- `dispose()` ends the Fiber and runs its cleanup.
 
-The core crate stays dependency-free; the loader stack lives in sibling
-crates that build on it:
+Dropping a `Fork` does **not** dispose the Fiber. Lifecycle ownership is explicit.
 
-| Crate | Purpose |
-| --- | --- |
-| [`cordis-include`](../crates/cordis-include) | Config entry trees, YAML/JSON loader files, patch lists with provenance dumps (bundle/profile composition), the tag-preserving `!!js` dialect with expression evaluation, `${{ env.NAME }}` interpolation, atomic and debounced writes |
-| [`cordis-group`](../crates/cordis-group) | Group plugin: nested entries with cascading disable |
-| [`cordis-loader`](../crates/cordis-loader) | Plugin registry + entry↔fiber state machine, cross-file `import` entries, document-backed composition sources (`with_document` / `update`), hot reload, lifecycle events, debounced write-backs, dynamic-library plugins (`dynamic` feature) |
-| [`cordis-cli`](../crates/cordis-cli) | `cordis run` executable: daemon/worker exit-code protocol, signals, dotenv, plugin-library hot restarts |
+Resources registered through a Plugin's apply `Context` are owned by that apply
+generation. Listener registrations, Service publications, tasks, effects, and
+timer operations can therefore be cleaned up with the generation instead of
+being manually threaded through application code.
 
-Ported so far: static plugin registry, groups, `import` sub-files, self-kill
-detection, entry-level inject, config hot reload, the `loader/*` event
-family, debounced writes, bundle/profile patch composition with
-provenance-aware dumps (`apply_entry_patches` / `compose_layers` /
-`render_config_dump`), a tag-preserving `!!js` YAML dialect with the
-expression subset evaluated at config hand-off (including the
-`disabled: !!js` slot), document-backed composition with in-memory
-recomposition, the daemon/worker runner, and dynamic-library plugins with
-worker-restart HMR (`cordis-loader`'s `dynamic` feature plus
-`cordis run --plugin-dir`). Not yet ported: isolate / service migration,
-arbitrary-JavaScript expressions beyond the shipped subset.
+## Services: exact placement, not fallback lookup
 
-## Project layout
-
-The repository is a virtual cargo workspace; the core crate lives in
-`crates/cordis` and mirrors the upstream package:
+A Service is identified by its semantic Service name and resolved from one exact
+slot:
 
 ```text
-crates/
-├── cordis/            # cordis-rs — this crate (zero dependencies)
-│   └── src/
-│       ├── context.rs   # root/child context and scope overlays
-│       ├── events.rs    # event bus and five dispatch modes
-│       ├── fiber.rs     # plugin lifecycle and effect ownership
-│       ├── logger.rs    # messages, formatters, buffer, exporters
-│       ├── reflect.rs   # scoped service store and computed properties
-│       ├── registry.rs  # Plugin, Inject, runtime records
-│       ├── service.rs   # typed service and constructor adapters
-│       ├── effect.rs    # disposers, handles, diagnostic trees
-│       ├── value.rs     # Arc<dyn Any> values
-│       └── utils.rs     # boxed futures, small executor
-├── cordis-include/    # entry trees and config files
-├── cordis-group/      # group plugin
-├── cordis-loader/     # plugin registry + state machine
-└── cordis-cli/        # cordis run executable
+(Service, ServiceRealm)
 ```
 
-## Development
+By default a Context uses the Runtime's default realm. Isolation changes the
+realm selected for specific Service names.
 
-```sh
-# MSRV compatibility
-cargo +1.85 check --workspace --all-targets --all-features
-cargo +1.85 test --workspace --all-features
+To give one Service a fresh private slot:
 
-# Latest stable quality and forward-compatibility checks
-cargo +stable fmt --all -- --check
-cargo +stable clippy --workspace --all-targets --all-features -- -D warnings
-cargo +stable test --workspace --all-features
-RUSTDOCFLAGS="-D warnings" cargo +stable doc --workspace --no-deps --all-features
+```rust
+let tenant_a = root.with_isolated_service(Database::NAME);
 ```
 
-## License
+To isolate several Services, chain the operation:
 
-MIT. The architecture and behavior are based on Cordis by Shigma and the DeepSeek Harness vendored implementation.
+```rust
+let tenant_a = root
+    .with_isolated_service(Database::NAME)
+    .with_isolated_service(Cache::NAME)
+    .with_isolated_service(Ledger::NAME);
+```
+
+Each call changes only that Service's placement. Other Service mappings are
+inherited.
+
+For explicit sharing and joining, allocate opaque realms and map Service names to
+them:
+
+```rust
+let shared_metrics = root.new_service_realm();
+let tenant_a_db = root.new_service_realm();
+let tenant_b_db = root.new_service_realm();
+
+let tenant_a = root.with_service_realms([
+    (Database::NAME, tenant_a_db),
+    (Metrics::NAME, shared_metrics.clone()),
+])?;
+
+let tenant_b = root.with_service_realms([
+    (Database::NAME, tenant_b_db),
+    (Metrics::NAME, shared_metrics),
+])?;
+```
+
+Now the tenants resolve different Databases but the same Metrics slot.
+
+A `ServiceRealm` is only an opaque Runtime-local placement identity. It has no
+hierarchy, parent lookup, textual rendezvous, or fallback rule. If a Context maps
+`Database` to a private realm and that realm has no visible Database publication,
+lookup is unavailable; Cordis does not fall back to the default realm.
+
+## Events: typed communication with explicit Scope routing
+
+An `Event` declares a Runtime-local semantic name together with typed `Args` and
+`Output`. Listener adapters make the listener role explicit:
+
+- **Observer** — notification side effect.
+- **Responder** — may answer a query.
+- **Mapper** — transforms a waterfall payload.
+- **Around** — onion-style middleware with a consuming `Next`.
+
+Dispatch always chooses routing explicitly:
+
+```rust
+ctx.emit::<Ping>(Routing::Unscoped, payload).await?;
+
+ctx.emit::<Ping>(Routing::Scoped(request_scope), payload).await?;
+```
+
+`Routing::Scoped(scope)` reaches scoped registrations on the target Scope itself
+and its ancestors, plus global registrations. Siblings and descendants are not
+reached. `Routing::Unscoped` does not apply Scope eligibility filtering.
+
+This makes Scope useful for questions such as:
+
+> Which behavior should be able to hear this Event?
+
+Typical Scope boundaries are a tenant, request, workflow, session, or
+plugin-local event pipeline.
+
+## Scope and Service isolation are independent
+
+A `Context` carries independent axes:
+
+```text
+Context
+  ├─ current Fiber
+  ├─ isolate   → which exact Service realm each Service resolves from
+  ├─ Scope     → which listeners are eligible for scoped Event dispatch
+  └─ intercept → ordered ConfigurableService configuration layers
+```
+
+Use **Scope** for Event reachability. Use **Service isolation** for Service
+placement.
+
+| Question | Use |
+|---|---|
+| Which listeners may receive this Event? | `Scope` |
+| Keep tenant A events out of tenant B's event subtree? | `Scope` |
+| Which Database should this Plugin resolve? | Service isolation |
+| Give two tenants different Caches? | Service isolation |
+| Share Metrics while isolating Database? | explicit `ServiceRealm` mappings |
+
+The axes do not imply one another. Two Contexts may share the same Service realm
+while living in different Scopes, or share the same Scope while resolving a
+Service from different realms.
+
+When a Plugin is spawned, its Service dependency edges are resolved against the
+spawning Context's isolate mapping, while the new Fiber receives its own child
+Scope. This lets sibling Plugins share exact Services without accidentally
+sharing one Event seat.
+
+## Crates
+
+| Crate | Role |
+|---|---|
+| `cordis-rs` | application facade preserving the historical `cordis` import |
+| `cordis-core` | canonical Context, Plugin/Fork lifecycle, Services, Events, effects, logging, runtime observation |
+| `cordis-timer` | generation-owned sleep, interval, and timeout operations |
+| `cordis-loader` | immutable declarative load plans and synchronous typed target resolution |
+
+`cordis-core` deliberately does not depend on serde/serde_json or Tokio's time
+driver. Declarative loading and time operations stay in optional leaf crates.
+
+## Examples
+
+Every example is standalone, headless under CI, and exits on its own.
+
+```bash
+cargo run -p hello_plugin
+cargo run -p gateway
+cargo run -p worker_daemon
+cargo run -p scopes_tenants
+cargo run -p logging_exporters
+cargo run -p chat_capstone
+```
+
+What they demonstrate:
+
+| Example | Focus |
+|---|---|
+| `hello_plugin` | smallest correct Plugin/Event lifecycle |
+| `gateway` | declarative JSON boot, scoped routing, typed updates, timeout |
+| `worker_daemon` | failure/recovery, `Context::run`, restart/update, sleep/interval |
+| `scopes_tenants` | Service realms and Event Scope as independent axes |
+| `logging_exporters` | logging and runtime observation |
+| `chat_capstone` | the full composition, including Pending convergence, update, and era replacement |
+
+Start with `hello_plugin`; use the other examples as focused tours of the public
+surface.
+
+## Design boundaries worth knowing
+
+Cordis intentionally does **not** model a general Context hierarchy or a nested DI
+container. Context derivation changes explicit axes only.
+
+That means:
+
+- Scope ancestry is Event routing, not lifecycle ownership.
+- Service realms are placement identities, not namespaces.
+- `InjectSpec` declares lifecycle requirements, not lookup fallback.
+- spawn origin records provenance, not parent/child ownership.
+- update preserves Fiber identity; era replacement deliberately does not.
+
+These boundaries keep event routing, service placement, and lifecycle semantics
+independent instead of letting one hidden tree control all three.
+
+## Project status
+
+The v3 semantic crates begin at `0.1.0`; the historical application package moves
+to `cordis-rs 0.7.0`. The workspace uses Rust 2024 Edition with MSRV 1.88.
+As a pre-1.0 project, the public API may still evolve.
+
+Cordis is a Rust port and redesign in the lineage of
+[`cordiverse/cordis`](https://github.com/cordiverse/cordis).

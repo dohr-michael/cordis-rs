@@ -1,0 +1,28 @@
+error[E0609]: no field `sn` on type `&LogRecord`
+ --> tests/ui-logger/fail/record_representation_is_private.rs:3:20
+  |
+3 |     let _ = record.sn;
+  |                    ^^ unknown field
+
+error[E0609]: no field `ts` on type `&LogRecord`
+ --> tests/ui-logger/fail/record_representation_is_private.rs:4:20
+  |
+4 |     let _ = record.ts;
+  |                    ^^ unknown field
+
+error[E0609]: no field `name` on type `&LogRecord`
+ --> tests/ui-logger/fail/record_representation_is_private.rs:5:21
+  |
+5 |     let _ = &record.name;
+  |                     ^^^^ unknown field
+
+error[E0616]: field `text` of struct `LogRecord` is private
+ --> tests/ui-logger/fail/record_representation_is_private.rs:6:21
+  |
+6 |     let _ = &record.text;
+  |                     ^^^^ private field
+  |
+help: a method `text` also exists, call it with parentheses
+  |
+6 |     let _ = &record.text();
+  |                         ++

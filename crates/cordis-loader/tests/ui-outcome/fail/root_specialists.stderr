@@ -1,0 +1,7 @@
+error[E0432]: unresolved imports `cordis_loader::EntryOutcome`, `cordis_loader::LoaderFailure`
+ --> tests/ui-outcome/fail/root_specialists.rs:1:21
+  |
+1 | use cordis_loader::{EntryOutcome, LoaderFailure};
+  |                     ^^^^^^^^^^^^  ^^^^^^^^^^^^^ no `LoaderFailure` in the root
+  |                     |
+  |                     no `EntryOutcome` in the root

@@ -1,0 +1,20 @@
+error[E0432]: unresolved import `cordis_timer::Cancelled`
+ --> tests/ui-timer/fail/removed_cancelled_and_infallible_sleep.rs:2:20
+  |
+2 | use cordis_timer::{Cancelled, Sleep, TimerExt};
+  |                    ^^^^^^^^^ no `Cancelled` in the root
+
+error[E0308]: mismatched types
+ --> tests/ui-timer/fail/removed_cancelled_and_infallible_sleep.rs:7:20
+  |
+7 |     let _: Sleep = ctx.sleep(Duration::ZERO);
+  |            -----   ^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Sleep`, found `Result<Sleep, TimerRegistrationError>`
+  |            |
+  |            expected due to this
+  |
+  = note: expected struct `Sleep`
+               found enum `Result<Sleep, TimerRegistrationError>`
+help: consider using `Result::expect` to unwrap the `Result<Sleep, TimerRegistrationError>` value, panicking if the value is a `Result::Err`
+  |
+7 |     let _: Sleep = ctx.sleep(Duration::ZERO).expect("REASON");
+  |                                             +++++++++++++++++

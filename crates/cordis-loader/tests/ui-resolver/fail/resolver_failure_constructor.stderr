@@ -1,0 +1,5 @@
+error[E0451]: fields `kind` and `diagnostic` of struct `ResolverFailure` are private
+ --> tests/ui-resolver/fail/resolver_failure_constructor.rs:3:31
+  |
+3 |     let _ = ResolverFailure { kind: ResolverFailureKind::Panic, diagnostic: String::new() };
+  |                               ^^^^ private field                ^^^^^^^^^^ private field

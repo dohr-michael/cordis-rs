@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_core::event::ListenerGuard`
+ --> tests/ui/fail/removed_listener_guard.rs:1:5
+  |
+1 | use cordis_core::event::ListenerGuard;
+  |     ^^^^^^^^^^^^^^^^^^^^-------------
+  |                         |
+  |                         no `ListenerGuard` in `event`

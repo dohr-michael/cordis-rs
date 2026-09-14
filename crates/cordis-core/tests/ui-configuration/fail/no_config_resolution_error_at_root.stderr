@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_core::ConfigResolutionError`
+ --> tests/ui-configuration/fail/no_config_resolution_error_at_root.rs:4:5
+  |
+4 | use cordis_core::ConfigResolutionError;
+  |     ^^^^^^^^^^^^^---------------------
+  |                  |
+  |                  no `ConfigResolutionError` in the root

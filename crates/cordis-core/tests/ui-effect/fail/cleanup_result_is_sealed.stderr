@@ -1,0 +1,63 @@
+error[E0046]: not all trait items implemented, missing: `into_outcome`
+ --> tests/ui-effect/fail/cleanup_result_is_sealed.rs:9:1
+  |
+9 | impl CleanupResult for Custom {}
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `into_outcome` in implementation
+  |
+  = help: implement the missing item: `fn into_outcome(self) -> Result<(), EffectFailure> { todo!() }`
+
+error[E0277]: the trait bound `Custom: effect::sealed::Sealed` is not satisfied
+ --> tests/ui-effect/fail/cleanup_result_is_sealed.rs:9:24
+  |
+9 | impl CleanupResult for Custom {}
+  |                        ^^^^^^ unsatisfied trait bound
+  |
+help: the trait `effect::sealed::Sealed` is not implemented for `Custom`
+ --> tests/ui-effect/fail/cleanup_result_is_sealed.rs:7:1
+  |
+7 | struct Custom;
+  | ^^^^^^^^^^^^^
+help: the following other types implement trait `effect::sealed::Sealed`
+ --> src/effect.rs
+  |
+  |     impl Sealed for () {}
+  |     ^^^^^^^^^^^^^^^^^^ `()`
+  |     impl<E: std::error::Error> Sealed for Result<(), E> {}
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Result<(), E>`
+note: required by a bound in `CleanupResult`
+ --> src/effect.rs
+  |
+  | pub trait CleanupResult: sealed::Sealed {
+  |                          ^^^^^^^^^^^^^^ required by this bound in `CleanupResult`
+  = note: `CleanupResult` is a "sealed trait", because to implement it you also need to implement `cordis_core::effect::sealed::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
+  = help: the following types implement the trait:
+            ()
+            std::result::Result<(), E>
+
+error[E0277]: the trait bound `u32: CleanupResult` is not satisfied
+  --> tests/ui-effect/fail/cleanup_result_is_sealed.rs:13:17
+   |
+13 |     let _ = ctx.effect_sync(|| 7u32);
+   |                 ^^^^^^^^^^^ the trait `CleanupResult` is not implemented for `u32`
+   |
+help: the following other types implement trait `CleanupResult`
+  --> tests/ui-effect/fail/cleanup_result_is_sealed.rs:9:1
+   |
+ 9 | impl CleanupResult for Custom {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Custom`
+   |
+  ::: src/effect.rs
+   |
+   | impl CleanupResult for () {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^ `()`
+...
+   | impl<E: std::error::Error> CleanupResult for Result<(), E> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Result<(), E>`
+note: required by a bound in `effect::<impl cordis_core::Context>::effect_sync`
+  --> src/effect.rs
+   |
+   |     pub fn effect_sync<F, R>(
+   |            ----------- required by a bound in this associated function
+...
+   |         R: CleanupResult,
+   |            ^^^^^^^^^^^^^ required by this bound in `effect::<impl Context>::effect_sync`

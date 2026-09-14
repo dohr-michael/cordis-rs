@@ -1,0 +1,11 @@
+error[E0423]: cannot initialize a tuple struct which contains private fields
+ --> tests/ui/fail/listener_registration_id_is_opaque.rs:5:13
+  |
+5 |     let _ = ListenerRegistrationId(Arc::new(0u8));
+  |             ^^^^^^^^^^^^^^^^^^^^^^
+  |
+note: constructor is not visible here due to private fields
+ --> src/events/types.rs
+  |
+  | pub struct ListenerRegistrationId(Arc<u8>);
+  |                                   ^^^^^^^ private field

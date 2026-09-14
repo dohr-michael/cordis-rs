@@ -1,0 +1,11 @@
+error[E0599]: no method named `once` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui/fail/removed_once.rs:14:17
+   |
+14 |     let _ = ctx.once::<Ping, _>(observer_sync(|_, ()| Ok::<(), Infallible>(() )));
+   |                 ^^^^
+   |
+help: there is a method `on` with a similar name
+   |
+14 -     let _ = ctx.once::<Ping, _>(observer_sync(|_, ()| Ok::<(), Infallible>(() )));
+14 +     let _ = ctx.on::<Ping, _>(observer_sync(|_, ()| Ok::<(), Infallible>(() )));
+   |

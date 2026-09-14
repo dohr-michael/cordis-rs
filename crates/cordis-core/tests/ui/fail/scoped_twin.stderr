@@ -1,0 +1,5 @@
+error[E0599]: no method named `emit_scoped` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui/fail/scoped_twin.rs:3:46
+  |
+3 | fn main(){ let ctx=Context::new(); let _=ctx.emit_scoped::<Ping>(&(), ()); }
+  |                                              ^^^^^^^^^^^ method not found in `cordis_core::Context`

@@ -1,0 +1,35 @@
+error[E0432]: unresolved imports `cordis_core::logger::ExporterId`, `cordis_core::logger::Message`
+ --> tests/ui-logger/fail/legacy_logger_surface.rs:1:27
+  |
+1 | use cordis_core::logger::{ExporterId, Message};
+  |                           ^^^^^^^^^^  ^^^^^^^ no `Message` in `logger`
+  |                           |
+  |                           no `ExporterId` in `logger`
+  |
+help: a similar name exists in the module
+  |
+1 - use cordis_core::logger::{ExporterId, Message};
+1 + use cordis_core::logger::{Exporter, Message};
+  |
+
+warning: unreachable statement
+ --> tests/ui-logger/fail/legacy_logger_surface.rs:6:5
+  |
+5 |     let id: ExporterId = panic!();
+  |                          -------- any code following this expression is unreachable
+6 |     let _ = ctx.remove_exporter(id);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `remove_exporter` found for struct `cordis_core::Context` in the current scope
+ --> tests/ui-logger/fail/legacy_logger_surface.rs:6:17
+  |
+6 |     let _ = ctx.remove_exporter(id);
+  |                 ^^^^^^^^^^^^^^^
+  |
+help: there is a method `add_exporter` with a similar name
+  |
+6 -     let _ = ctx.remove_exporter(id);
+6 +     let _ = ctx.add_exporter(id);
+  |

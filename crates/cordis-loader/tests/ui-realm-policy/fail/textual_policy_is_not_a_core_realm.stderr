@@ -1,0 +1,18 @@
+error[E0271]: type mismatch resolving `<[(&str, RealmPolicy); 1] as IntoIterator>::Item == (&str, ServiceRealm)`
+ --> tests/ui-realm-policy/fail/textual_policy_is_not_a_core_realm.rs:9:37
+  |
+9 |     let _ = ctx.with_service_realms([("service", policy)]);
+  |                 ------------------- ^^^^^^^^^^^^^^^^^^^^^ expected `(&str, ServiceRealm)`, found `(&str, RealmPolicy)`
+  |                 |
+  |                 required by a bound introduced by this call
+  |
+  = note: expected tuple `(&str, ServiceRealm)`
+             found tuple `(&str, RealmPolicy)`
+note: required by a bound in `cordis_core::Context::with_service_realms`
+ --> $WORKSPACE/crates/cordis-core/src/context.rs
+  |
+  |     pub fn with_service_realms<I, K>(
+  |            ------------------- required by a bound in this associated function
+...
+  |         I: IntoIterator<Item = (K, crate::ServiceRealm)>,
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Context::with_service_realms`

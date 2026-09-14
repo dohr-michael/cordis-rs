@@ -1,0 +1,22 @@
+error[E0425]: cannot find type `Result` in crate `cordis_core`
+ --> tests/ui-lifecycle/fail/removed_dispose_global_error.rs:4:25
+  |
+4 |     let _: cordis_core::Result<()> = fork.dispose().await;
+  |                         ^^^^^^ not found in `cordis_core`
+  |
+help: consider importing one of these items
+  |
+1 + use std::fmt::Result;
+  |
+1 + use std::io::Result;
+  |
+1 + use std::result::Result;
+  |
+1 + use std::thread::Result;
+  |
+  = and 2 other candidates
+help: if you import `Result`, refer to it directly
+  |
+4 -     let _: cordis_core::Result<()> = fork.dispose().await;
+4 +     let _: Result<()> = fork.dispose().await;
+  |

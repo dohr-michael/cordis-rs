@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_timer::TimerError`
+ --> tests/ui-facade59/fail/timer_alias.rs:1:5
+  |
+1 | use cordis_timer::TimerError;
+  |     ^^^^^^^^^^^^^^----------
+  |                   |
+  |                   no `TimerError` in the root

@@ -1,0 +1,16 @@
+error[E0432]: unresolved imports `cordis_core::any_plugin`, `cordis_core::DynPlugin`, `cordis_core::ErasedConfig`, `cordis_core::InterceptConfig`, `cordis_core::PluginBuilder`
+ --> tests/ui-configuration/fail/removed_erased_plugin_surfaces.rs:1:19
+  |
+1 | use cordis_core::{any_plugin, DynPlugin, ErasedConfig, InterceptConfig, PluginBuilder};
+  |                   ^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^ no `PluginBuilder` in the root
+  |                   |           |          |             |
+  |                   |           |          |             no `InterceptConfig` in the root
+  |                   |           |          no `ErasedConfig` in the root
+  |                   |           no `DynPlugin` in the root
+  |                   no `any_plugin` in the root
+  |
+help: a similar name exists in the module
+  |
+1 - use cordis_core::{any_plugin, DynPlugin, ErasedConfig, InterceptConfig, PluginBuilder};
+1 + use cordis_core::{any_plugin, Plugin, ErasedConfig, InterceptConfig, PluginBuilder};
+  |

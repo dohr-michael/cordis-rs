@@ -1,0 +1,29 @@
+error[E0599]: no method named `waterfall_bail` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui/fail/issue34_old_waterfall_surface.rs:12:17
+   |
+12 |     let _ = ctx.waterfall_bail::<Flow, Flow, _>(String::new(), |_| Ok(String::new()));
+   |                 ^^^^^^^^^^^^^^
+   |
+help: there is a method `waterfall` with a similar name, but with different arguments
+  --> src/events/dispatch.rs
+   |
+   | /     pub async fn waterfall<E, F, Fut, Err>(
+   | |         &self,
+   | |         routing: Routing,
+   | |         args: E::Args,
+...  |
+   | |         Fut: Future<Output = Result<E::Output, Err>> + Send + 'static,
+   | |         Err: Error + 'static,
+   | |_____________________________^
+
+error[E0599]: no method named `waterfall_scoped` found for struct `cordis_core::Context` in the current scope
+  --> tests/ui/fail/issue34_old_waterfall_surface.rs:13:17
+   |
+13 |     let _ = ctx.waterfall_scoped::<Flow, _>(&(), String::new(), |value| async move { Ok::<_, std::convert::Infallible>(value) });
+   |                 ^^^^^^^^^^^^^^^^
+   |
+help: there is a method `waterfall` with a similar name
+   |
+13 -     let _ = ctx.waterfall_scoped::<Flow, _>(&(), String::new(), |value| async move { Ok::<_, std::convert::Infallible>(value) });
+13 +     let _ = ctx.waterfall::<Flow, _>(&(), String::new(), |value| async move { Ok::<_, std::convert::Infallible>(value) });
+   |

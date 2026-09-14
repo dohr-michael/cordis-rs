@@ -1,0 +1,24 @@
+error[E0277]: the trait bound `Foreign: cordis_timer::shapes::private::Sealed` is not satisfied
+ --> tests/ui-timer/fail/timer_ext_is_sealed.rs:7:19
+  |
+7 | impl TimerExt for Foreign {
+  |                   ^^^^^^^ unsatisfied trait bound
+  |
+help: the trait `cordis_timer::shapes::private::Sealed` is not implemented for `Foreign`
+ --> tests/ui-timer/fail/timer_ext_is_sealed.rs:5:1
+  |
+5 | struct Foreign;
+  | ^^^^^^^^^^^^^^
+help: the trait `cordis_timer::shapes::private::Sealed` is implemented for `cordis_core::context::Context`
+ --> src/shapes.rs
+  |
+  |     impl Sealed for cordis_core::Context {}
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: required by a bound in `TimerExt`
+ --> src/shapes.rs
+  |
+  | pub trait TimerExt: private::Sealed {
+  |                     ^^^^^^^^^^^^^^^ required by this bound in `TimerExt`
+  = note: `TimerExt` is a "sealed trait", because to implement it you also need to implement `cordis_timer::shapes::private::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
+  = help: the following type implements the trait:
+            cordis_core::context::Context

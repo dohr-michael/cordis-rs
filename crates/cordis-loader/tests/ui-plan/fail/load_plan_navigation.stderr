@@ -1,0 +1,17 @@
+error[E0599]: no method named `entries` found for struct `LoadPlan` in the current scope
+ --> tests/ui-plan/fail/load_plan_navigation.rs:6:18
+  |
+6 |     let _ = plan.entries();
+  |                  ^^^^^^^ method not found in `LoadPlan`
+
+error[E0599]: no method named `children` found for struct `LoadPlan` in the current scope
+ --> tests/ui-plan/fail/load_plan_navigation.rs:7:18
+  |
+7 |     let _ = plan.children(&id);
+  |                  ^^^^^^^^ method not found in `LoadPlan`
+
+error[E0599]: no method named `is_enabled` found for struct `LoadPlan` in the current scope
+ --> tests/ui-plan/fail/load_plan_navigation.rs:8:18
+  |
+8 |     let _ = plan.is_enabled(&id);
+  |                  ^^^^^^^^^^ method not found in `LoadPlan`

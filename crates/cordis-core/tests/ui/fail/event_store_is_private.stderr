@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_core::event::EventStore`
+ --> tests/ui/fail/event_store_is_private.rs:1:5
+  |
+1 | use cordis_core::event::EventStore;
+  |     ^^^^^^^^^^^^^^^^^^^^----------
+  |                         |
+  |                         no `EventStore` in `event`

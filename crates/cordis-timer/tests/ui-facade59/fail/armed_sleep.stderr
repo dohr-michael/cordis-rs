@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_timer::ArmedSleep`
+ --> tests/ui-facade59/fail/armed_sleep.rs:1:5
+  |
+1 | use cordis_timer::ArmedSleep;
+  |     ^^^^^^^^^^^^^^----------
+  |                   |
+  |                   no `ArmedSleep` in the root

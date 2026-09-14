@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_core::CordisErrorCode`
+ --> tests/ui/fail/issue33_event_error_codes_removed.rs:1:5
+  |
+1 | use cordis_core::CordisErrorCode;
+  |     ^^^^^^^^^^^^^---------------
+  |                  |
+  |                  no `CordisErrorCode` in the root

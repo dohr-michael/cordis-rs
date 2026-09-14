@@ -1,0 +1,15 @@
+[package]
+name = "logging_exporters"
+description = "cordis example — final-v3 logging, observation, and typed lifecycle administration"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+cordis-core = { workspace = true }
+examples-common = { workspace = true }
+parking_lot = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

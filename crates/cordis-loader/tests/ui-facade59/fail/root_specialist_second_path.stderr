@@ -1,0 +1,7 @@
+error[E0432]: unresolved import `cordis_loader::PlanError`
+ --> tests/ui-facade59/fail/root_specialist_second_path.rs:1:5
+  |
+1 | use cordis_loader::PlanError;
+  |     ^^^^^^^^^^^^^^^---------
+  |                    |
+  |                    no `PlanError` in the root

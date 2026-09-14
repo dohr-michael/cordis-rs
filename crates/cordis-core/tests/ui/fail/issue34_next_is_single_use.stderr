@@ -1,0 +1,9 @@
+error[E0382]: use of moved value: `next`
+  --> tests/ui/fail/issue34_next_is_single_use.rs:15:22
+   |
+14 |         let first = next.call(value.clone()).await?;
+   |                     ---- value moved here
+15 |         let second = next.call(value).await?;
+   |                      ^^^^ value used here after move
+   |
+   = note: move occurs because `next` has type `Next<Flow>`, which does not implement the `Copy` trait

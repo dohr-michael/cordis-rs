@@ -1,0 +1,22 @@
+error[E0432]: unresolved imports `cordis_core::CordisError`, `cordis_core::CordisErrorCode`, `cordis_core::Result`
+ --> tests/ui-error57/fail/global_error_surface_removed.rs:1:19
+  |
+1 | use cordis_core::{CordisError, CordisErrorCode, Result};
+  |                   ^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^ no `Result` in the root
+  |                   |            |
+  |                   |            no `CordisErrorCode` in the root
+  |                   no `CordisError` in the root
+  |
+  = help: consider importing one of these items instead:
+          std::fmt::Result
+          std::io::Result
+          std::result::Result
+          std::thread::Result
+          core::fmt::Result
+          core::result::Result
+
+error[E0432]: unresolved import `cordis_core::error`
+ --> tests/ui-error57/fail/global_error_surface_removed.rs:2:18
+  |
+2 | use cordis_core::error::CordisError as ModuleCordisError;
+  |                  ^^^^^ could not find `error` in `cordis_core`

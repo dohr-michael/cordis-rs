@@ -1,0 +1,50 @@
+error[E0599]: no method named `downcast_ref` found for reference `&PluginFailure` in the current scope
+ --> tests/ui-error57/fail/opaque_normalized_failures.rs:8:21
+  |
+8 |     let _ = failure.downcast_ref::<std::io::Error>();
+  |                     ^^^^^^^^^^^^ method not found in `&PluginFailure`
+
+error[E0624]: associated function `returned` is private
+ --> tests/ui-error57/fail/opaque_normalized_failures.rs:9:28
+  |
+9 |     let _ = PluginFailure::returned("boom".to_owned());
+  |                            ^^^^^^^^ private associated function
+  |
+ ::: src/fiber/spawn.rs
+  |
+  |     pub(crate) fn returned(diagnostic: String) -> Self {
+  |     -------------------------------------------------- private associated function defined here
+
+error[E0599]: no method named `downcast_ref` found for reference `&EffectFailure` in the current scope
+  --> tests/ui-error57/fail/opaque_normalized_failures.rs:12:21
+   |
+12 |     let _ = failure.downcast_ref::<std::io::Error>();
+   |                     ^^^^^^^^^^^^ method not found in `&EffectFailure`
+
+error[E0624]: associated function `returned` is private
+  --> tests/ui-error57/fail/opaque_normalized_failures.rs:13:28
+   |
+13 |     let _ = EffectFailure::returned("boom".to_owned());
+   |                            ^^^^^^^^ private associated function
+   |
+  ::: src/effect.rs
+   |
+   |     pub(crate) fn returned(diagnostic: String) -> Self {
+   |     -------------------------------------------------- private associated function defined here
+
+error[E0599]: no method named `downcast_ref` found for reference `&InvocationFailure` in the current scope
+  --> tests/ui-error57/fail/opaque_normalized_failures.rs:16:21
+   |
+16 |     let _ = failure.downcast_ref::<std::io::Error>();
+   |                     ^^^^^^^^^^^^ method not found in `&InvocationFailure`
+
+error[E0624]: associated function `returned` is private
+  --> tests/ui-error57/fail/opaque_normalized_failures.rs:17:32
+   |
+17 |     let _ = InvocationFailure::returned("boom".to_owned());
+   |                                ^^^^^^^^ private associated function
+   |
+  ::: src/events/types.rs
+   |
+   |     pub(crate) fn returned(diagnostic: String) -> Self {
+   |     -------------------------------------------------- private associated function defined here

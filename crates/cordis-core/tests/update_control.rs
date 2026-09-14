@@ -1,0 +1,717 @@
+//! Issue 35 typed same-Fiber update-control conformance evidence.
+
+use cordis_core::event::{ListenerOptions, around, mapper, mapper_sync};
+use cordis_core::lifecycle::{FiberState, UpdateError, UpdateNext, UpdateOutcome};
+use cordis_core::{Context, InjectSpec, Plugin, PreparedChange, PreparedPlugin};
+use parking_lot::Mutex;
+use std::convert::Infallible;
+use std::future::Future;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use tokio::sync::Notify;
+
+#[derive(Clone)]
+struct Probe {
+    seen: Arc<Mutex<Vec<u8>>>,
+}
+
+impl Plugin for Probe {
+    type Config = u8;
+    type Input = u8;
+    type PrepareError = Infallible;
+    type ApplyError = Infallible;
+
+    fn prepare(&self, config: u8) -> Result<u8, Infallible> {
+        Ok(config)
+    }
+
+    fn apply(
+        &self,
+        _ctx: Context,
+        input: &u8,
+    ) -> impl Future<Output = Result<(), Infallible>> + Send {
+        self.seen.lock().push(*input);
+        std::future::ready(Ok(()))
+    }
+}
+
+#[tokio::test]
+async fn typed_mapper_transforms_before_one_commit() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let _policy = ctx
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(|_ctx, value| Ok::<_, Infallible>(value + 1)),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    let id = fork.id();
+
+    let outcome = fork
+        .update(PreparedChange::from_input::<Probe>(2))
+        .await
+        .unwrap();
+    assert_eq!(outcome, UpdateOutcome::Committed(FiberState::Active));
+    assert_eq!(fork.id(), id);
+    assert_eq!(*seen.lock(), vec![1, 3]);
+}
+
+#[tokio::test]
+async fn around_can_veto_without_reaching_private_tail() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let _policy = ctx
+        .on_update::<Probe, _>(
+            around::<Probe, _>(|_ctx, value, _next: UpdateNext<Probe>| async move {
+                Ok::<_, Infallible>(value)
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+
+    let outcome = fork
+        .update(PreparedChange::from_input::<Probe>(9))
+        .await
+        .unwrap();
+    assert_eq!(outcome, UpdateOutcome::Vetoed);
+    assert_eq!(*seen.lock(), vec![1]);
+}
+
+#[tokio::test]
+async fn routing_is_target_scoped_and_global_widens_it() {
+    let root = Context::new();
+    let branch = root.with_child_scope();
+    let sibling = root.with_child_scope();
+    let calls = Arc::new(Mutex::new(Vec::new()));
+
+    let branch_calls = calls.clone();
+    let _ancestor = branch
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(move |_ctx, value| {
+                branch_calls.lock().push("ancestor");
+                Ok::<_, Infallible>(value)
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let sibling_calls = calls.clone();
+    let _sibling = sibling
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(move |_ctx, value| {
+                sibling_calls.lock().push("sibling");
+                Ok::<_, Infallible>(value)
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let global_calls = calls.clone();
+    let _global = sibling
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(move |_ctx, value| {
+                global_calls.lock().push("global");
+                Ok::<_, Infallible>(value)
+            }),
+            ListenerOptions::default().global(),
+        )
+        .unwrap();
+
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let fork = branch
+        .spawn(PreparedPlugin::from_input(Probe { seen }, 1))
+        .await
+        .unwrap();
+    fork.update(PreparedChange::from_input::<Probe>(2))
+        .await
+        .unwrap();
+    assert_eq!(*calls.lock(), vec!["ancestor", "global"]);
+}
+
+#[tokio::test]
+async fn wrong_contract_is_precommit_and_typed() {
+    struct Other;
+    impl Plugin for Other {
+        type Config = ();
+        type Input = ();
+        type PrepareError = Infallible;
+        type ApplyError = Infallible;
+        fn prepare(&self, _: ()) -> Result<(), Infallible> {
+            Ok(())
+        }
+        fn apply(&self, _: Context, _: &()) -> impl Future<Output = Result<(), Infallible>> + Send {
+            std::future::ready(Ok(()))
+        }
+    }
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    let id = fork.id();
+    let err = fork
+        .update(PreparedChange::from_input::<Other>(()))
+        .await
+        .unwrap_err();
+    assert!(matches!(err, UpdateError::PluginContractMismatch));
+    assert_eq!(fork.id(), id);
+    assert_eq!(*seen.lock(), vec![1]);
+}
+
+#[tokio::test]
+async fn private_tail_is_provisional_until_outer_control_returns() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let tail_seen = Arc::new(Notify::new());
+    let release = Arc::new(Notify::new());
+    let t = tail_seen.clone();
+    let r = release.clone();
+    let _policy = ctx
+        .on_update::<Probe, _>(
+            around::<Probe, _>(move |_ctx, value, next: UpdateNext<Probe>| {
+                let t = t.clone();
+                let r = r.clone();
+                async move {
+                    let value = next.call(value).await?;
+                    t.notify_one();
+                    r.notified().await;
+                    Ok::<_, cordis_core::event::InvocationFailure>(value + 1)
+                }
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    let task = tokio::spawn({
+        let fork = fork.clone();
+        async move { fork.update(PreparedChange::from_input::<Probe>(2)).await }
+    });
+    tail_seen.notified().await;
+    assert_eq!(*seen.lock(), vec![1], "tail reach is not lifecycle commit");
+    assert_eq!(fork.state(), FiberState::Active);
+    release.notify_one();
+    assert_eq!(
+        task.await.unwrap().unwrap(),
+        UpdateOutcome::Committed(FiberState::Active)
+    );
+    assert_eq!(*seen.lock(), vec![1, 3]);
+}
+
+#[tokio::test]
+async fn outer_around_can_recover_downstream_failure_after_tail() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let _outer = ctx
+        .on_update::<Probe, _>(
+            around::<Probe, _>(|_ctx, value, next: UpdateNext<Probe>| async move {
+                match next.call(value).await {
+                    Ok(value) => Ok::<_, Infallible>(value),
+                    Err(_) => Ok(value + 1),
+                }
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let _inner = ctx
+        .on_update::<Probe, _>(
+            around::<Probe, _>(|_ctx, value, next: UpdateNext<Probe>| async move {
+                let _ = next
+                    .call(value)
+                    .await
+                    .map_err(|e| std::io::Error::other(e.to_string()))?;
+                Err::<u8, _>(std::io::Error::other("policy rejected after tail"))
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    assert_eq!(
+        fork.update(PreparedChange::from_input::<Probe>(2))
+            .await
+            .unwrap(),
+        UpdateOutcome::Committed(FiberState::Active)
+    );
+    assert_eq!(*seen.lock(), vec![1, 3]);
+}
+
+#[tokio::test]
+async fn close_during_awaited_control_reports_admission_lost() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let entered = Arc::new(Notify::new());
+    let release = Arc::new(Notify::new());
+    let e = entered.clone();
+    let r = release.clone();
+    let _policy = ctx
+        .on_update::<Probe, _>(
+            around::<Probe, _>(move |_ctx, value, next: UpdateNext<Probe>| {
+                let e = e.clone();
+                let r = r.clone();
+                async move {
+                    e.notify_one();
+                    r.notified().await;
+                    next.call(value).await
+                }
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    let task = tokio::spawn({
+        let fork = fork.clone();
+        async move { fork.update(PreparedChange::from_input::<Probe>(2)).await }
+    });
+    entered.notified().await;
+    fork.dispose().await.unwrap();
+    release.notify_one();
+    assert!(matches!(
+        task.await.unwrap(),
+        Err(UpdateError::AdmissionLost)
+    ));
+    assert_eq!(*seen.lock(), vec![1]);
+}
+
+#[derive(Clone)]
+struct BlockingProbe {
+    seen: Arc<Mutex<Vec<u8>>>,
+    entered: Arc<Notify>,
+    release: Arc<Notify>,
+}
+impl Plugin for BlockingProbe {
+    type Config = u8;
+    type Input = u8;
+    type PrepareError = Infallible;
+    type ApplyError = Infallible;
+    fn prepare(&self, v: u8) -> Result<u8, Infallible> {
+        Ok(v)
+    }
+    async fn apply(&self, _: Context, v: &u8) -> Result<(), Infallible> {
+        self.seen.lock().push(*v);
+        if *v == 2 {
+            self.entered.notify_one();
+            self.release.notified().await;
+        }
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn cancelling_postcommit_waiter_does_not_cancel_update_owner() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let entered = Arc::new(Notify::new());
+    let release = Arc::new(Notify::new());
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(
+            BlockingProbe {
+                seen: seen.clone(),
+                entered: entered.clone(),
+                release: release.clone(),
+            },
+            1,
+        ))
+        .await
+        .unwrap();
+    let task = tokio::spawn({
+        let fork = fork.clone();
+        async move {
+            fork.update(PreparedChange::from_input::<BlockingProbe>(2))
+                .await
+        }
+    });
+    entered.notified().await;
+    task.abort();
+    release.notify_one();
+    assert_eq!(fork.ready().await.unwrap(), FiberState::Active);
+    assert_eq!(*seen.lock(), vec![1, 2]);
+}
+
+#[tokio::test]
+async fn concurrent_updates_commit_in_postcontrol_admission_order() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let entered = Arc::new(Notify::new());
+    let release = Arc::new(Notify::new());
+    let e = entered.clone();
+    let r = release.clone();
+    let _policy = ctx
+        .on_update::<Probe, _>(
+            mapper::<Probe, _>(move |_ctx, value| {
+                let e = e.clone();
+                let r = r.clone();
+                async move {
+                    if value == 2 {
+                        e.notify_one();
+                        r.notified().await;
+                    }
+                    Ok::<_, Infallible>(value)
+                }
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    let a = tokio::spawn({
+        let fork = fork.clone();
+        async move { fork.update(PreparedChange::from_input::<Probe>(2)).await }
+    });
+    entered.notified().await;
+    let b = tokio::spawn({
+        let fork = fork.clone();
+        async move { fork.update(PreparedChange::from_input::<Probe>(3)).await }
+    });
+    assert_eq!(
+        b.await.unwrap().unwrap(),
+        UpdateOutcome::Committed(FiberState::Active)
+    );
+    release.notify_one();
+    assert_eq!(
+        a.await.unwrap().unwrap(),
+        UpdateOutcome::Committed(FiberState::Active)
+    );
+    assert_eq!(*seen.lock(), vec![1, 3, 2]);
+}
+
+#[derive(Clone)]
+struct FailingProbe {
+    seen: Arc<Mutex<Vec<u8>>>,
+}
+impl Plugin for FailingProbe {
+    type Config = u8;
+    type Input = u8;
+    type PrepareError = Infallible;
+    type ApplyError = std::io::Error;
+    fn prepare(&self, v: u8) -> Result<u8, Infallible> {
+        Ok(v)
+    }
+    async fn apply(&self, _: Context, v: &u8) -> Result<(), std::io::Error> {
+        self.seen.lock().push(*v);
+        if *v == 2 {
+            Err(std::io::Error::other("apply two"))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[tokio::test]
+async fn postcommit_apply_failure_is_invisible_to_control_and_candidate_is_retained() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let hits = Arc::new(AtomicUsize::new(0));
+    let h = hits.clone();
+    let _policy = ctx
+        .on_update::<FailingProbe, _>(
+            mapper_sync::<FailingProbe, _>(move |_ctx, v| {
+                h.fetch_add(1, Ordering::SeqCst);
+                Ok::<_, Infallible>(v)
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(
+            FailingProbe { seen: seen.clone() },
+            1,
+        ))
+        .await
+        .unwrap();
+    assert!(matches!(
+        fork.update(PreparedChange::from_input::<FailingProbe>(2))
+            .await,
+        Err(UpdateError::Apply(_))
+    ));
+    assert_eq!(fork.state(), FiberState::Failed);
+    assert_eq!(hits.load(Ordering::SeqCst), 1);
+    assert!(fork.restart().await.is_err());
+    assert_eq!(
+        hits.load(Ordering::SeqCst),
+        1,
+        "restart/failed apply never re-enters update control"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![1, 2, 2],
+        "new input value remains authoritative after failed apply"
+    );
+}
+
+#[tokio::test]
+async fn cancelling_during_precommit_control_commits_nothing() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let entered = Arc::new(Notify::new());
+    let release = Arc::new(Notify::new());
+    let e = entered.clone();
+    let r = release.clone();
+    let _policy = ctx
+        .on_update::<Probe, _>(
+            mapper::<Probe, _>(move |_ctx, v| {
+                let e = e.clone();
+                let r = r.clone();
+                async move {
+                    e.notify_one();
+                    r.notified().await;
+                    Ok::<_, Infallible>(v)
+                }
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    let task = tokio::spawn({
+        let fork = fork.clone();
+        async move { fork.update(PreparedChange::from_input::<Probe>(2)).await }
+    });
+    entered.notified().await;
+    task.abort();
+    release.notify_one();
+    tokio::task::yield_now().await;
+    assert_eq!(fork.state(), FiberState::Active);
+    assert_eq!(*seen.lock(), vec![1]);
+}
+
+#[tokio::test]
+async fn era_swap_never_invokes_update_control() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let hits = Arc::new(AtomicUsize::new(0));
+    let h = hits.clone();
+    let _policy = ctx
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(move |_ctx, v| {
+                h.fetch_add(1, Ordering::SeqCst);
+                Ok::<_, Infallible>(v)
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    let old_id = fork.id();
+    let replacement = fork
+        .era_swap(PreparedChange::from_input::<Probe>(2))
+        .await
+        .unwrap();
+    assert_ne!(replacement.id(), old_id);
+    assert_eq!(hits.load(Ordering::SeqCst), 0);
+    assert_eq!(*seen.lock(), vec![1, 2]);
+}
+
+#[tokio::test]
+async fn unrecovered_control_error_preserves_old_generation() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let _policy = ctx
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(|_ctx, _v| Err::<u8, _>(std::io::Error::other("no"))),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    let id = fork.id();
+    assert!(matches!(
+        fork.update(PreparedChange::from_input::<Probe>(2)).await,
+        Err(UpdateError::Control(_))
+    ));
+    assert_eq!(fork.id(), id);
+    assert_eq!(fork.state(), FiberState::Active);
+    assert_eq!(*seen.lock(), vec![1]);
+}
+
+#[derive(Clone)]
+struct ReentrantProbe {
+    fork: Arc<Mutex<Option<cordis_core::Fork>>>,
+    result: Arc<Mutex<Option<Result<UpdateOutcome, UpdateError>>>>,
+}
+impl Plugin for ReentrantProbe {
+    type Config = u8;
+    type Input = u8;
+    type PrepareError = Infallible;
+    type ApplyError = Infallible;
+    fn prepare(&self, v: u8) -> Result<u8, Infallible> {
+        Ok(v)
+    }
+    async fn apply(&self, _: Context, _: &u8) -> Result<(), Infallible> {
+        let fork = self.fork.lock().clone();
+        if let Some(fork) = fork {
+            let outcome = fork
+                .update(PreparedChange::from_input::<ReentrantProbe>(2))
+                .await;
+            *self.result.lock() = Some(outcome);
+        }
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn same_fiber_update_recursion_is_refused_before_control() {
+    let ctx = Context::new();
+    let fork_cell = Arc::new(Mutex::new(None));
+    let result = Arc::new(Mutex::new(None));
+    let hits = Arc::new(AtomicUsize::new(0));
+    let h = hits.clone();
+    let _policy = ctx
+        .on_update::<ReentrantProbe, _>(
+            mapper_sync::<ReentrantProbe, _>(move |_ctx, v| {
+                h.fetch_add(1, Ordering::SeqCst);
+                Ok::<_, Infallible>(v)
+            }),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(
+            ReentrantProbe {
+                fork: fork_cell.clone(),
+                result: result.clone(),
+            },
+            1,
+        ))
+        .await
+        .unwrap();
+    *fork_cell.lock() = Some(fork.clone());
+    fork.restart().await.unwrap();
+    let outcome = result
+        .lock()
+        .take()
+        .expect("restart apply attempted update");
+    match outcome {
+        Err(UpdateError::Recursion(recursion)) => {
+            assert_eq!(
+                recursion.operation(),
+                cordis_core::lifecycle::LifecycleOperation::Update
+            );
+            assert_eq!(recursion.fiber_id(), &fork.id());
+        }
+        other => panic!("expected typed update recursion refusal, got {other:?}"),
+    }
+    assert_eq!(
+        hits.load(Ordering::SeqCst),
+        0,
+        "recursion refusal precedes update control"
+    );
+}
+
+#[derive(Clone)]
+struct PendingProbe {
+    applies: Arc<AtomicUsize>,
+}
+impl Plugin for PendingProbe {
+    type Config = u8;
+    type Input = u8;
+    type PrepareError = Infallible;
+    type ApplyError = Infallible;
+    fn prepare(&self, v: u8) -> Result<u8, Infallible> {
+        Ok(v)
+    }
+    fn inject(&self) -> InjectSpec {
+        InjectSpec::none().require("issue35/missing")
+    }
+    async fn apply(&self, _: Context, _: &u8) -> Result<(), Infallible> {
+        self.applies.fetch_add(1, Ordering::SeqCst);
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn accepted_update_can_commit_to_stable_pending_without_apply() {
+    let ctx = Context::new();
+    let applies = Arc::new(AtomicUsize::new(0));
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(
+            PendingProbe {
+                applies: applies.clone(),
+            },
+            1,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(fork.ready().await.unwrap(), FiberState::Pending);
+    let id = fork.id();
+    assert_eq!(
+        fork.update(PreparedChange::from_input::<PendingProbe>(2))
+            .await
+            .unwrap(),
+        UpdateOutcome::Committed(FiberState::Pending)
+    );
+    assert_eq!(fork.id(), id);
+    assert_eq!(applies.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn prepend_and_once_fix_typed_transformation_order() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let _append = ctx
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(|_, v| Ok::<_, Infallible>(v + 1)),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let _prepend_once = ctx
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(|_, v| Ok::<_, Infallible>(v * 10)),
+            ListenerOptions::default().prepend().once(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    fork.update(PreparedChange::from_input::<Probe>(2))
+        .await
+        .unwrap();
+    fork.update(PreparedChange::from_input::<Probe>(2))
+        .await
+        .unwrap();
+    assert_eq!(*seen.lock(), vec![1, 21, 3]);
+}
+
+#[tokio::test]
+async fn mapper_failure_is_correlated_to_a_claimed_update_occurrence() {
+    let ctx = Context::new();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let _registration = ctx
+        .on_update::<Probe, _>(
+            mapper_sync::<Probe, _>(|_, _v| Err::<u8, _>(std::io::Error::other("mapper failed"))),
+            ListenerOptions::default(),
+        )
+        .unwrap();
+    let fork = ctx
+        .spawn(PreparedPlugin::from_input(Probe { seen: seen.clone() }, 1))
+        .await
+        .unwrap();
+    match fork.update(PreparedChange::from_input::<Probe>(2)).await {
+        Err(UpdateError::Control(failure)) => assert!(failure.registration_id().is_some()),
+        other => panic!("expected correlated mapper control failure, got {other:?}"),
+    }
+    assert_eq!(*seen.lock(), vec![1]);
+}

@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `cordis_timer::prelude`
+ --> tests/ui-facade59/fail/prelude_escape.rs:1:19
+  |
+1 | use cordis_timer::prelude::*;
+  |                   ^^^^^^^ could not find `prelude` in `cordis_timer`

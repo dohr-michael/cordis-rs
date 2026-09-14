@@ -1,0 +1,35 @@
+error[E0451]: fields `id`, `service`, `realm`, `provider` and `visible` of struct `ServiceSnapshot` are private
+ --> tests/ui-observation/fail/constructors_are_private.rs:6:9
+  |
+5 |     let _ = ServiceSnapshot {
+  |             --------------- in this type
+6 |         id, service: String::new(), realm, provider, visible: false,
+  |         ^^  ^^^^^^^                 ^^^^^  ^^^^^^^^  ^^^^^^^ private field
+  |         |   |                       |      |
+  |         |   |                       |      private field
+  |         |   private field           private field
+  |         private field
+
+error[E0451]: fields `fibers` and `services` of struct `RuntimeSnapshot` are private
+  --> tests/ui-observation/fail/constructors_are_private.rs:14:31
+   |
+14 |     let _ = RuntimeSnapshot { fibers: vec![], services: vec![] };
+   |                               ^^^^^^          ^^^^^^^^ private field
+   |                               |
+   |                               private field
+
+error[E0451]: fields `id`, `role`, `name`, `state` and `missing_services` of struct `FiberSnapshot` are private
+  --> tests/ui-observation/fail/constructors_are_private.rs:16:9
+   |
+15 |     let _ = FiberSnapshot {
+   |             ------------- in this type
+16 |         id: root.id().clone(),
+   |         ^^ private field
+17 |         role: cordis_core::lifecycle::FiberRole::Root,
+   |         ^^^^ private field
+18 |         name: String::new(),
+   |         ^^^^ private field
+19 |         state: cordis_core::FiberState::Active,
+   |         ^^^^^ private field
+20 |         missing_services: vec![],
+   |         ^^^^^^^^^^^^^^^^ private field

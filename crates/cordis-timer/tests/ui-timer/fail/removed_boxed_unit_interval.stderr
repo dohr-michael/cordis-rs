@@ -1,0 +1,10 @@
+error[E0308]: mismatched types
+ --> tests/ui-timer/fail/removed_boxed_unit_interval.rs:9:48
+  |
+9 |     let _: Result<BoxStream<'static, ()>, _> = ctx.interval(Duration::from_millis(1));
+  |            ---------------------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Result<Pin<Box<...>>, _>`, found `Result<Interval, TimerRegistrationError>`
+  |            |
+  |            expected due to this
+  |
+  = note: expected enum `Result<Pin<Box<(dyn Stream<Item = ()> + std::marker::Send + 'static)>>, _>`
+             found enum `Result<Interval, TimerRegistrationError>`

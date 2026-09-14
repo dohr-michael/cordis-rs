@@ -1,0 +1,24 @@
+error[E0603]: module `deps` is private
+ --> tests/ui-service/fail/issue26_no_raw_dependency_authority.rs:6:46
+  |
+6 |     let _ = std::mem::size_of::<cordis_core::deps::DependencyIndex>();
+  |                                              ^^^^  --------------- struct `DependencyIndex` is not publicly re-exported
+  |                                              |
+  |                                              private module
+  |
+note: the module `deps` is defined here
+ --> src/lib.rs
+  |
+  | mod deps;
+  | ^^^^^^^^
+
+error[E0624]: method `entries` is private
+ --> tests/ui-service/fail/issue26_no_raw_dependency_authority.rs:5:18
+  |
+5 |     let _ = spec.entries();
+  |                  ^^^^^^^ private method
+  |
+ ::: src/plugin.rs
+  |
+  |     pub(crate) fn entries(&self) -> impl Iterator<Item = &InjectEntry> {
+  |     ------------------------------------------------------------------ private method defined here

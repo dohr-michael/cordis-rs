@@ -1,0 +1,5 @@
+error[E0616]: field `factory` of struct `StatefulCallback` is private
+ --> tests/ui/fail/stateful_callback_fields.rs:2:150
+  |
+2 | ...<(), std::convert::Infallible>(())); let _ = callback.factory; }
+  |                                                          ^^^^^^^ private field

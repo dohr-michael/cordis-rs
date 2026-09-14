@@ -1,0 +1,16 @@
+[package]
+name = "examples-common"
+description = "shared helper for the cordis examples suite — boot/teardown mechanics and the ops-console trio"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+cordis-core = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+parking_lot = { workspace = true }
+
+[lints]
+workspace = true

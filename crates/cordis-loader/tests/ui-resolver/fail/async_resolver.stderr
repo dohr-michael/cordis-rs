@@ -1,0 +1,8 @@
+error[E0053]: method `resolve` has an incompatible type for trait
+ --> tests/ui-resolver/fail/async_resolver.rs:8:54
+  |
+8 |     async fn resolve(&self, _: PluginRequest<'_>) -> Result<Option<PreparedPlugin>, Self::Error> { Ok(None) }
+  |                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Result<Option<PreparedPlugin>, ...>`, found future
+  |
+  = note: expected signature `fn(&AsyncResolver, PluginRequest<'_>) -> Result<Option<PreparedPlugin>, Infallible>`
+             found signature `fn(&AsyncResolver, PluginRequest<'_>) -> impl Future<Output = Result<Option<PreparedPlugin>, <AsyncResolver as PluginResolver>::Error>>`

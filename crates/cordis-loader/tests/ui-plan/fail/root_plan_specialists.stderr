@@ -1,0 +1,8 @@
+error[E0432]: unresolved imports `cordis_loader::IsolateEntry`, `cordis_loader::PlanError`, `cordis_loader::RealmPolicy`
+ --> tests/ui-plan/fail/root_plan_specialists.rs:1:21
+  |
+1 | use cordis_loader::{IsolateEntry, PlanError, RealmPolicy};
+  |                     ^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^ no `RealmPolicy` in the root
+  |                     |             |
+  |                     |             no `PlanError` in the root
+  |                     no `IsolateEntry` in the root
