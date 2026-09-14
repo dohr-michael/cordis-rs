@@ -293,35 +293,46 @@ impl InertiaSlot {
         fiber: &Arc<Fiber>,
         root: &Arc<Root>,
         settled: &SemanticTarget,
-        revision: u64,
+        mut revision: u64,
     ) -> bool {
-        self.inertia.store(INERTIA_RELEASING, Ordering::SeqCst);
-        let live = fiber.compute_target(root);
-        if live != *settled || self.recheck_committed.load(Ordering::SeqCst) != revision {
-            self.record_target(live);
-            self.inertia.store(INERTIA_ACTIVE, Ordering::SeqCst);
-            return true;
-        }
+        loop {
+            self.inertia.store(INERTIA_RELEASING, Ordering::SeqCst);
+            let live = fiber.compute_target(root);
+            let observed_revision = self.recheck_revision();
+            if live != *settled {
+                self.record_target(live);
+                self.inertia.store(INERTIA_ACTIVE, Ordering::SeqCst);
+                return true;
+            }
+            if observed_revision != revision {
+                // Revisions are durable wakeup/progress authority, not part of
+                // SemanticTarget equality (ADR 0031). Re-probe after every
+                // revision observed during this pass so a target-neutral
+                // notification is acknowledged without re-applying, while a
+                // semantic mutation cannot hide behind a stale target read.
+                revision = observed_revision;
+                continue;
+            }
 
-        self.recheck_settled.store(revision, Ordering::SeqCst);
-        match self.inertia.compare_exchange(
-            INERTIA_RELEASING,
-            INERTIA_IDLE,
-            Ordering::SeqCst,
-            Ordering::SeqCst,
-        ) {
-            Ok(_) => {
-                self.done.notify_waiters();
-                false
+            self.recheck_settled.store(revision, Ordering::SeqCst);
+            match self.inertia.compare_exchange(
+                INERTIA_RELEASING,
+                INERTIA_IDLE,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => {
+                    self.done.notify_waiters();
+                    return false;
+                }
+                Err(INERTIA_ACTIVE) => {
+                    // A committed recheck claimed our releasing slot. It is a
+                    // signal to probe again, not proof of semantic drift; the
+                    // existing holder still owns the driver.
+                    revision = self.recheck_revision();
+                }
+                Err(other) => panic!("invalid inertia release state {other}"),
             }
-            Err(INERTIA_ACTIVE) => {
-                // A mutation committed after our clean probe and claimed the
-                // releasing slot. The current holder keeps ownership and loops;
-                // no second driver is spawned.
-                self.record_target(fiber.compute_target(root));
-                true
-            }
-            Err(other) => panic!("invalid inertia release state {other}"),
         }
     }
 
@@ -376,8 +387,20 @@ impl InertiaSlot {
                         )
                         .is_ok()
                     {
-                        self.record_target(fiber.compute_target(root));
-                        Self::spawn_convergence_pass(&handle, fiber, root);
+                        let revision = self.recheck_revision();
+                        let settled = self.target.lock().clone();
+                        if let Some(settled) = settled {
+                            if self.exit_recheck(fiber, root, &settled, revision) {
+                                Self::spawn_convergence_pass(&handle, fiber, root);
+                            }
+                        } else {
+                            // Before the creation pass records its first target,
+                            // preserve the spawn-window choreography: the
+                            // convergence winner owns the slot, but settle_once
+                            // still leaves the first apply to creation.
+                            self.record_target(fiber.compute_target(root));
+                            Self::spawn_convergence_pass(&handle, fiber, root);
+                        }
                         return;
                     }
                 }
@@ -919,6 +942,51 @@ mod tests {
             fiber.compute_target(&ctx.root),
             "same publication payload mutation is target-neutral"
         );
+    }
+
+    #[test]
+    fn target_neutral_recheck_during_release_is_acknowledged_without_another_pass() {
+        let ctx = Context::new();
+        let fiber = fiber_requiring(&ctx, &[]);
+        assert!(fiber.slot.try_claim());
+        let target = fiber.compute_target(&ctx.root);
+        let revision = fiber.slot.recheck_revision();
+
+        fiber.slot.commit_recheck();
+
+        assert!(
+            !fiber
+                .slot
+                .exit_recheck(&fiber, &ctx.root, &target, revision),
+            "mechanism-only recheck revisions are not semantic target drift"
+        );
+        assert!(fiber.slot.is_idle());
+        assert!(!fiber.slot.has_committed_recheck());
+    }
+
+    #[tokio::test]
+    async fn target_neutral_idle_recheck_does_not_reapply_the_settled_target() {
+        let ctx = Context::new();
+        let root = ctx.root.clone();
+        let applies = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let fiber = fiber_in_creation(&ctx, applies.clone(), false);
+        let outcome = fiber.slot.initial_spawn_pass(&fiber, &root).await;
+        assert!(matches!(outcome, super::InitialOutcome::Active));
+        fiber
+            .creation_pending
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(applies.load(std::sync::atomic::Ordering::SeqCst), 1);
+
+        fiber.slot.commit_recheck();
+        fiber.slot.kick(&fiber, &root);
+        fiber.slot.wait_idle().await;
+
+        assert_eq!(
+            applies.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "same SemanticTarget rechecks must not trigger another apply"
+        );
+        assert!(!fiber.slot.has_committed_recheck());
     }
 
     #[test]
