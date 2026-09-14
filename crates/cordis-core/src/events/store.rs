@@ -95,9 +95,55 @@ pub(crate) struct HookSnap {
 }
 
 #[derive(Default)]
+struct EventHooks {
+    order: Vec<ListenerRegistrationId>,
+    entries: HashMap<ListenerRegistrationId, Hook>,
+}
+
+impl EventHooks {
+    fn add(&mut self, hook: Hook) {
+        self.compact_if_sparse();
+        let id = hook.id.clone();
+        let prepend = hook.prepend;
+        let replaced = self.entries.insert(id.clone(), hook);
+        debug_assert!(replaced.is_none(), "listener identities are fresh");
+        if prepend {
+            self.order.insert(0, id);
+        } else {
+            self.order.push(id);
+        }
+    }
+
+    fn remove(&mut self, id: &ListenerRegistrationId) -> Option<Hook> {
+        self.entries.remove(id)
+    }
+
+    fn get(&self, id: &ListenerRegistrationId) -> Option<&Hook> {
+        self.entries.get(id)
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &Hook> {
+        self.order.iter().filter_map(|id| self.entries.get(id))
+    }
+
+    fn compact_if_sparse(&mut self) {
+        let stale = self.order.len() - self.entries.len();
+        if stale < 32 || stale < self.entries.len() {
+            return;
+        }
+        let entries = &self.entries;
+        self.order.retain(|id| entries.contains_key(id));
+    }
+
+    fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+}
+
+#[derive(Default)]
 struct EventState {
     contracts: HashMap<&'static str, EventContract>,
-    hooks: HashMap<&'static str, Vec<Hook>>,
+    hooks: HashMap<&'static str, EventHooks>,
 }
 
 #[derive(Default)]
@@ -125,13 +171,8 @@ impl EventStore {
     fn add_reserved<E: Event>(&self, hook: Hook) -> Result<(), EventContractMismatch> {
         let mut state = self.state.lock();
         Self::bind_locked::<E>(&mut state).map_err(|()| EventContractMismatch)?;
-        let prepend = hook.prepend;
         let list = state.hooks.entry(E::NAME).or_default();
-        if prepend {
-            list.insert(0, hook);
-        } else {
-            list.push(hook);
-        }
+        list.add(hook);
         Ok(())
     }
 
@@ -141,10 +182,9 @@ impl EventStore {
             let Some(list) = state.hooks.get_mut(name) else {
                 return false;
             };
-            let Some(at) = list.iter().position(|hook| hook.id == *id) else {
+            let Some(removed) = list.remove(id) else {
                 return false;
             };
-            let removed = list.remove(at);
             if list.is_empty() {
                 state.hooks.remove(name);
             }
@@ -160,13 +200,15 @@ impl EventStore {
             let Some(list) = state.hooks.get_mut(name) else {
                 return (false, false);
             };
-            let Some(at) = list.iter().position(|hook| hook.id == *id) else {
+            let Some(hook) = list.get(id) else {
                 return (false, false);
             };
-            if !list[at].once {
+            if !hook.once {
                 return (true, false);
             }
-            let claimed = list.remove(at);
+            let claimed = list
+                .remove(id)
+                .expect("the claimed listener remains indexed under the store lock");
             if list.is_empty() {
                 state.hooks.remove(name);
             }
@@ -184,9 +226,10 @@ impl EventStore {
         let mut state = self.state.lock();
         Self::bind_locked::<E>(&mut state)
             .map_err(|()| DispatchError::EventContractMismatch { event: E::NAME })?;
-        let Some(list) = state.hooks.get(E::NAME) else {
+        let Some(list) = state.hooks.get_mut(E::NAME) else {
             return Ok(Vec::new());
         };
+        list.compact_if_sparse();
 
         let eligible = |hook: &Hook| match routing {
             Routing::Unscoped => true,
