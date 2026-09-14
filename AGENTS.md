@@ -6,7 +6,7 @@ Guidance for agents working in this repo.
 
 ### Issue tracker
 
-Issues are tracked as local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+Issues and specs are tracked as GitHub issues using the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
