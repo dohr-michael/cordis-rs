@@ -52,6 +52,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          # trybuild generates compile-test crates under target/tests/trybuild.
+          # Restoring target across source revisions can replay stale UI-test
+          # state, so test jobs cache the Cargo registry only.
+          cache-targets: false
       - run: cargo test --locked --workspace
 
   quality:
