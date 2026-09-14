@@ -1,6 +1,6 @@
 # Cordis
 
-**English** | [简体中文](README.zh-CN.md)
+**English** | [简体中文](https://github.com/dshbox/cordis-rs/blob/main/README.zh-CN.md)
 
 [![CI](https://github.com/dshbox/cordis-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/dshbox/cordis-rs/actions/workflows/ci.yml)
 
@@ -49,7 +49,7 @@ Cordis v3 requires Rust **1.88** or newer and uses Rust 2024 Edition.
 `cordis-rs 0.7` is the first release line backed by the v3 runtime architecture.
 The `0.6.x` implementation remains on the `legacy/0.6` maintenance branch for
 critical bug and security fixes. The v3 transition is intentionally breaking;
-see [`MIGRATION.md`](MIGRATION.md) and [`docs/v3-migration.md`](docs/v3-migration.md).
+see [`MIGRATION.md`](https://github.com/dshbox/cordis-rs/blob/main/MIGRATION.md) and [`docs/v3-migration.md`](https://github.com/dshbox/cordis-rs/blob/main/docs/v3-migration.md).
 
 ## The mental model
 
