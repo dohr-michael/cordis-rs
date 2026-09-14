@@ -100,11 +100,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      # Core can be fully verified before first publication. Cargo cannot build
-      # leaf .crate archives until cordis-core 0.1 exists in crates.io, so the
-      # pre-release gate validates their package file sets instead. Promote these
-      # three list checks to full `cargo package` after core 0.1 is published.
       - run: cargo package --locked -p cordis-core
-      - run: cargo package --list -p cordis-timer > /dev/null
-      - run: cargo package --list -p cordis-loader > /dev/null
-      - run: cargo package --list -p cordis-rs > /dev/null
+      - run: cargo package --locked -p cordis-timer
+      - run: cargo package --locked -p cordis-loader
+      - run: cargo package --locked -p cordis-rs
