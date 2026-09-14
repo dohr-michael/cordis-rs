@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, v3]
+    branches: [main]
   pull_request:
   workflow_dispatch:
   schedule:
@@ -102,7 +102,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       # Core can be fully verified before first publication. Cargo cannot build
       # leaf .crate archives until cordis-core 0.1 exists in crates.io, so the
-      # staging branch validates their package file sets instead. Promote these
+      # pre-release gate validates their package file sets instead. Promote these
       # three list checks to full `cargo package` after core 0.1 is published.
       - run: cargo package --locked -p cordis-core
       - run: cargo package --list -p cordis-timer > /dev/null
