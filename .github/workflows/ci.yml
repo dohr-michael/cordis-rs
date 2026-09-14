@@ -51,12 +51,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
         with:
-          # trybuild generates compile-test crates under target/tests/trybuild.
-          # Restoring target across source revisions can replay stale UI-test
-          # state, so test jobs cache the Cargo registry only.
-          cache-targets: false
+          # trybuild golden diagnostics include spans from the Rust standard
+          # library source. Keep runner diagnostics identical to the environment
+          # in which the .stderr contracts are generated.
+          components: rust-src
+      - uses: Swatinem/rust-cache@v2
       - run: cargo test --locked --workspace
 
   quality:
