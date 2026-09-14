@@ -1,10 +1,12 @@
 name: Release-plz
 
-# v3 is a staging branch. Publishing remains main-only until v3 is promoted.
+# v3 is a staging branch. Main pushes may prepare a release PR, but publishing
+# is an explicit manual action even after v3 is promoted.
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,6 +23,7 @@ env:
 jobs:
   release-pr:
     name: Release PR
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -41,6 +44,7 @@ jobs:
 
   release:
     name: Publish to crates.io
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
