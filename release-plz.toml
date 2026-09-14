@@ -1,3 +1,6 @@
+[workspace]
+release_always = false
+
 # Semantic crates use release-plz's workspace default `<package>-v<version>` tag.
 # `cordis-rs` preserves its historical `v<version>` tag lineage.
 [[package]]

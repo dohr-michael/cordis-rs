@@ -1,6 +1,6 @@
 name: Release-plz
 
-# Main pushes may prepare a release PR; publishing is an explicit manual action.
+# Main pushes maintain the release PR and publish only when that release PR is merged.
 
 on:
   push:
@@ -11,11 +11,6 @@ permissions:
   contents: write
   pull-requests: write
 
-# Never cancel a publish mid-flight.
-concurrency:
-  group: release-plz-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
   CARGO_TERM_COLOR: always
 
@@ -23,6 +18,9 @@ jobs:
   release-pr:
     name: Release PR
     if: github.event_name == 'push'
+    concurrency:
+      group: release-plz-pr-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -43,7 +41,7 @@ jobs:
 
   release:
     name: Publish to crates.io
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
