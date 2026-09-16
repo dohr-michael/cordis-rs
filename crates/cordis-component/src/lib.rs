@@ -5,15 +5,14 @@
 //! asynchronous guest cleanup to that generation through
 //! [`cordis_core::effect`].
 
-use std::future::Future;
 use std::sync::Arc;
 
 use cordis_core::effect::EffectRegistrationError;
-use cordis_core::{Context, Level, Logger, Plugin};
+use cordis_core::{Context, Logger, Plugin};
 use parking_lot::Mutex;
 use thiserror::Error;
 use tokio::sync::Notify;
-use wasmtime::component::{Accessor, Component, HasData, Linker, ResourceTable};
+use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
 
@@ -21,7 +20,7 @@ use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
     missing_docs,
     reason = "Wasmtime generates bindings from the documented WIT contract"
 )]
-mod bindings {
+pub(crate) mod bindings {
     wasmtime::component::bindgen!({
         path: "../../wit",
         world: "cordis-plugin",
@@ -29,6 +28,11 @@ mod bindings {
 }
 
 use bindings::CordisPlugin;
+
+/// Standard host capabilities available to guest Components.
+mod capabilities;
+
+pub(crate) use capabilities::Diagnostics;
 
 /// A reusable Component Model Plugin factory.
 ///
@@ -116,7 +120,7 @@ enum ComponentDisposeError {
     Rejected(String),
 }
 
-struct HostState {
+pub(crate) struct HostState {
     table: ResourceTable,
     wasi: WasiCtx,
     logger: Logger,
@@ -127,33 +131,6 @@ impl WasiView for HostState {
         WasiCtxView {
             ctx: &mut self.wasi,
             table: &mut self.table,
-        }
-    }
-}
-
-struct Diagnostics;
-
-impl HasData for Diagnostics {
-    type Data<'a> = &'a mut HostState;
-}
-
-impl bindings::cordis::plugin::diagnostics::Host for HostState {}
-
-impl bindings::cordis::plugin::diagnostics::HostWithStore<HostState> for Diagnostics {
-    fn emit(
-        host: &Accessor<HostState, Self>,
-        level: bindings::cordis::plugin::diagnostics::Level,
-        message: String,
-    ) -> impl Future<Output = ()> + Send {
-        let logger = host.with(|mut access| access.get().logger.clone());
-        async move {
-            let level = match level {
-                bindings::cordis::plugin::diagnostics::Level::Debug => Level::Debug,
-                bindings::cordis::plugin::diagnostics::Level::Info => Level::Info,
-                bindings::cordis::plugin::diagnostics::Level::Warn => Level::Warn,
-                bindings::cordis::plugin::diagnostics::Level::Error => Level::Error,
-            };
-            logger.log(level, message);
         }
     }
 }
@@ -266,8 +243,7 @@ impl Plugin for ComponentPlugin {
 
     async fn apply(&self, ctx: Context, input: &ComponentInput) -> Result<(), ComponentApplyError> {
         let mut linker = Linker::<HostState>::new(&self.engine);
-        CordisPlugin::add_to_linker::<_, Diagnostics>(&mut linker, |state| state)
-            .map_err(ComponentApplyError::Instantiate)?;
+        capabilities::add_to_linker(&mut linker).map_err(ComponentApplyError::Instantiate)?;
         wasmtime_wasi::p2::add_to_linker_async(&mut linker)
             .map_err(ComponentApplyError::Instantiate)?;
         let mut store = Store::new(
