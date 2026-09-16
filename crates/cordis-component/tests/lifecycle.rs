@@ -2,10 +2,11 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use cordis_component::{ComponentArtifact, ComponentPlugin};
-use cordis_core::{Context, FiberState, Plugin, PreparedPlugin};
+use cordis_core::logger::BufferExporter;
+use cordis_core::{Context, FiberState, Level, Plugin, PreparedPlugin};
 
 fn guest_component() -> &'static Path {
     static COMPONENT: OnceLock<PathBuf> = OnceLock::new();
@@ -41,6 +42,10 @@ async fn component_guest_activates_and_disposes_with_its_fiber() {
     );
     let input = plugin.prepare(artifact).expect("guest component prepares");
     let context = Context::new();
+    let logs = Arc::new(BufferExporter::new(16, Level::Debug).expect("valid log buffer"));
+    let _logs = context
+        .add_exporter(logs.clone())
+        .expect("root admits diagnostic exporter");
 
     let fiber = context
         .spawn(PreparedPlugin::from_input(plugin, input))
@@ -53,4 +58,28 @@ async fn component_guest_activates_and_disposes_with_its_fiber() {
 
     fiber.dispose().await.expect("guest component disposes");
     assert_eq!(fiber.state(), FiberState::Disposed);
+
+    let records = logs.snapshot();
+    assert_eq!(
+        records
+            .iter()
+            .filter(|record| record.text() == "guest lifecycle activated")
+            .count(),
+        2,
+        "each apply generation forwarded its activation diagnostic"
+    );
+    assert_eq!(
+        records
+            .iter()
+            .filter(|record| record.text() == "guest lifecycle disposed")
+            .count(),
+        2,
+        "each generation forwarded exactly one disposal diagnostic"
+    );
+    assert!(
+        records
+            .iter()
+            .all(|record| record.channel() == "wasm-component"),
+        "the host, not the guest, owns the logger channel"
+    );
 }
