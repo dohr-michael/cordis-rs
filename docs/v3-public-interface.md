@@ -625,9 +625,18 @@ dispose(self).await -> Result<bool, EffectFailure>
 
 Manual control and the automatic generation drain compete for one exact
 claim. A winning dispose transfers completion to framework ownership,
-independent of caller polling. A returned failure or panic permanently
-consumes the occurrence. Generation drain closes admission, claims the
-remaining entries, and runs all cleanup in strict sequential LIFO order,
+independent of caller polling. Async cleanup is first polled on a process-wide
+Cordis completion runtime, so Tokio runtime-bound resources created by the
+cleanup bind there rather than to the caller's runtime; synchronous cleanup
+keeps lifecycle-executor ordering. Resources captured earlier from another
+runtime retain that external runtime's lifetime. A live settle attribution at
+manual-dispose claim time follows the detached cleanup task; ordinary external
+manual disposal carries none. Synchronous cleanup is for short non-blocking
+bookkeeping; blocking work should use async cleanup plus
+`tokio::task::spawn_blocking` so it cannot occupy a shared completion worker. A
+returned failure or panic permanently consumes the occurrence. Generation drain
+closes admission, claims the remaining entries, and runs all cleanup in strict
+sequential LIFO order,
 continuing after failure. Callbacks, awaits, and user-controlled
 destruction occur outside locks.
 
@@ -870,7 +879,10 @@ cleanup obligation.
 Sleep and Timeout deadlines are monotonic and pinned at successful
 construction. Work stays lazy and is owned only by `Timeout<F>`;
 generation cleanup owns only timer cancellation and imposes no universal
-`Send` or `'static` bound on `F` or its output.
+`Send` or `'static` bound on `F` or its output. Each one-shot has exactly one
+terminal result; polling `Sleep` or `Timeout<F>` again after that result is a
+caller error and panics. `Interval` differs deliberately as a stream: after its
+terminal cancellation item, every later poll returns `None`.
 
 ```rust
 impl Future for Sleep {

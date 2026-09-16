@@ -7,7 +7,13 @@ Cancellation before that commit has no framework effect: no state,
 configuration, gate, claim, allocation, publication, or observation
 changes. Cancellation after that commit abandons only the caller's wait;
 framework-owned work continues independently of caller polling until it
-reaches the operation's documented barrier. This uniform law covers
+reaches the operation's documented barrier. Runtime-agnostic Cordis lifecycle
+work normally stays on the current Tokio executor; if shutdown drops it after a
+normal `Pending`, the same pinned future transfers to a shared Cordis completion
+runtime. Arbitrary async effect cleanup is different: it is first polled on that
+completion runtime, so Tokio time/IO work created by the cleanup never migrates
+between runtime drivers. A poll unwind is a failure, never a transfer signal.
+This uniform law covers
 disposal, Registry removal, restart, update, era swap, new-Fiber
 creation, exact manual cleanup disposal, and Loader result handoff.
 
@@ -67,10 +73,25 @@ manual cleanup dispose commits at its claim and completes under
 framework ownership despite caller cancellation. Loader result handoff
 commits as each FiberHandle is obtained; if load or result construction is
 abandoned before delivery, the already-obtained FiberHandles are disposed in
-reverse success order, attempt-all, under framework-owned completion,
-while dropping a delivered outcome is inert.
+reverse success order, attempt-all, under framework-owned completion. Loader
+uses the same core completion seam, so abandoning a load during executor
+shutdown does not drop that rollback. Dropping a delivered outcome is inert.
 
 ## Consequences of the rule
+
+**Completion executor posture.** One lazily initialized process-wide Tokio
+runtime with two worker threads is shared by executor-shutdown transfers and by
+async effect cleanup. This is a fixed process-lifetime cost, not one OS
+thread/runtime per pending task or shutdown transfer. Runtime-bound resources
+created by async cleanup bind to this completion runtime. Resources captured
+earlier from an external runtime remain owned by that runtime; Cordis completion
+ownership cannot keep an unrelated runtime's timer/IO driver alive after it
+shuts down. Synchronous effect cleanup must not block indefinitely: it can
+stall its lifecycle executor, or a shared completion worker when off-runtime or
+shutdown-resilient completion reaches it. Blocking work belongs behind an async
+cleanup and `tokio::task::spawn_blocking`. This guarantee covers executor loss while the
+process remains alive, not process termination: Cordis has no Runtime-wide
+shutdown API or process-exit drain.
 
 **Generation gate closure.** A generation admits cleanup and resource
 registrations only while its gate is open: Loading and Active admit,
@@ -112,10 +133,12 @@ covers ready, wait_state, restart, update, era swap, dispose, and typed
 group removal — the last refused before any Registry detach. Raw
 `tokio::spawn` does not inherit Tokio task-local attribution; user subtasks
 that remain in the current settle dependency graph cross that task boundary
-through `Context::spawn_attributed`. Transferred frames share source liveness
-and stop refusing once the source settle scope ends, so detached subtasks cannot
-retain stale recursion state. Legal unrelated-Fiber waits and the dynamic
-era-swap backstops are preserved.
+through `Context::spawn_attributed`. A manual cleanup claimed by
+`EffectRegistration::dispose` likewise carries any live caller attribution into
+its detached task; an external manual claim carries none. Transferred frames
+share source liveness and stop refusing once the source settle scope ends, so
+detached work cannot retain stale recursion state. Legal unrelated-Fiber waits
+and the dynamic era-swap backstops are preserved.
 
 **Registry detach and exact-allocation prune.** Bulk removal commits at
 detaching one current PluginGroup allocation. Attach-before-detach joins

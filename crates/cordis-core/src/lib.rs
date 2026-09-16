@@ -58,6 +58,13 @@ pub mod __internal {
     pub fn generation_cleanup_admitted(ctx: &Context) -> bool {
         ctx.fiber().assert_can_register().is_ok()
     }
+
+    /// Detach runtime-agnostic framework work from caller polling. Normal progress
+    /// stays on the current executor; shutdown transfers pending work to Cordis's
+    /// shared completion runtime.
+    pub fn detach_completion(work: impl std::future::Future<Output = ()> + Send + 'static) {
+        crate::effect::detach(work);
+    }
 }
 
 /// Fiber identity, lifecycle control, and creation outcomes.

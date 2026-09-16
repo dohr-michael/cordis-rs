@@ -275,6 +275,11 @@ impl GenerationCancellation {
 /// unelapsed; lifecycle cancellation is reported separately from normal expiry.
 /// Dropping abandons the operation, disarms cleanup when possible, and drops
 /// caller work in the caller's frame without emitting a cancellation result.
+/// An arbitrary completed `F::Output` is not retained for replay.
+///
+/// # Panics
+///
+/// Panics if polled again after returning its terminal result.
 pub struct Timeout<F: Future> {
     work: Option<Pin<Box<F>>>,
     deadline: Option<Pin<Box<tokio::time::Sleep>>>,
@@ -383,6 +388,10 @@ where
 /// Its monotonic deadline is pinned at successful construction. Generation
 /// cancellation wins any uncommitted expiry; natural completion and Drop each
 /// arbitrate the same exact cleanup occurrence, and Drop emits no result.
+///
+/// # Panics
+///
+/// Panics if polled again after returning its terminal result.
 pub struct Sleep {
     deadline: Option<Pin<Box<tokio::time::Sleep>>>,
     cancellation: Arc<GenerationCancellation>,
