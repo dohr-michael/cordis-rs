@@ -2,10 +2,13 @@
 
 mod configuration;
 mod diagnostics;
+mod events;
 
 use wasmtime::component::{HasData, Linker};
 
 use crate::HostState;
+
+pub use events::ComponentEvent;
 
 /// Shared Wasmtime projection for all standard capability interfaces.
 ///

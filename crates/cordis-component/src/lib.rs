@@ -32,6 +32,8 @@ use bindings::CordisPlugin;
 /// Standard host capabilities available to guest Components.
 mod capabilities;
 
+pub use capabilities::ComponentEvent;
+
 /// A reusable Component Model Plugin factory.
 ///
 /// The factory owns one Wasmtime engine while each [`ComponentInput`] owns one
@@ -131,6 +133,7 @@ enum ComponentDisposeError {
 }
 
 pub(crate) struct HostState {
+    context: Context,
     table: ResourceTable,
     wasi: WasiCtx,
     logger: Logger,
@@ -275,6 +278,7 @@ impl Plugin for ComponentPlugin {
         let mut store = Store::new(
             &self.engine,
             HostState {
+                context: ctx.clone(),
                 table: ResourceTable::new(),
                 wasi: WasiCtx::builder().build(),
                 logger: ctx.logger().with_name("wasm-component"),

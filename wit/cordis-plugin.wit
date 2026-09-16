@@ -49,6 +49,27 @@ interface manifest {
   describe: async func() -> descriptor;
 }
 
+/// Guest-originated Component events delivered through the owning Context.
+///
+/// This initial boundary is outbound only. Host-to-guest subscriptions require
+/// a separately serialized callback model and are intentionally not implied by
+/// this interface.
+interface events {
+  /// One opaque Component event payload.
+  record event {
+    name: string,
+    payload: list<u8>,
+  }
+
+  /// A host refusal to deliver one event.
+  record event-error {
+    message: string,
+  }
+
+  /// Deliver one event to the owning Cordis Runtime.
+  emit: async func(event: event) -> result<_, event-error>;
+}
+
 /// The guest-controlled part of one Cordis apply generation.
 ///
 /// One component instance represents one apply generation. Restart and
@@ -84,6 +105,7 @@ interface lifecycle {
 world cordis-plugin {
   import configuration;
   import diagnostics;
+  import events;
   export lifecycle;
   export manifest;
 }
