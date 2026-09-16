@@ -6,6 +6,7 @@ wit_bindgen::generate!({
 
 use exports::cordis::plugin::lifecycle::{Guest, LifecycleError};
 use exports::cordis::plugin::manifest::{Descriptor, Guest as ManifestGuest, StandardCapability};
+use exports::cordis::plugin::event_handler::Guest as EventHandlerGuest;
 use cordis::plugin::configuration::get;
 use cordis::plugin::diagnostics::{Level, emit};
 use cordis::plugin::events::{Event, emit as emit_event};
@@ -41,7 +42,14 @@ impl ManifestGuest for Component {
                 StandardCapability::Configuration,
                 StandardCapability::Diagnostics,
             ],
+            subscribed_events: Vec::new(),
         }
+    }
+}
+
+impl EventHandlerGuest for Component {
+    async fn handle(_: Event) -> Result<(), cordis::plugin::events::EventError> {
+        Ok(())
     }
 }
 

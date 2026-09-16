@@ -9,9 +9,8 @@ use std::sync::Arc;
 
 use cordis_core::effect::EffectRegistrationError;
 use cordis_core::{Context, Logger, Plugin};
-use parking_lot::Mutex;
 use thiserror::Error;
-use tokio::sync::Notify;
+use tokio::sync::{mpsc, oneshot};
 use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
@@ -115,6 +114,9 @@ pub enum ComponentApplyError {
     /// The guest rejected activation with its own diagnostic.
     #[error("guest activation rejected: {0}")]
     ActivateRejected(String),
+    /// The guest component actor stopped before activation completed.
+    #[error("the guest component actor stopped before activation")]
+    ActorStopped,
     /// The guest trapped while its static manifest was being read.
     #[error("guest manifest trapped: {0}")]
     ManifestTrap(#[source] wasmtime::Error),
@@ -130,6 +132,8 @@ enum ComponentDisposeError {
     Trap(#[source] wasmtime::Error),
     #[error("guest disposal rejected: {0}")]
     Rejected(String),
+    #[error("the guest component actor stopped before disposal")]
+    ActorStopped,
 }
 
 pub(crate) struct HostState {
@@ -200,56 +204,53 @@ impl LiveComponent {
     }
 }
 
-enum GenerationInstance {
-    Activating,
-    Active(LiveComponent),
-    Claimed,
-}
-
 struct GenerationComponent {
-    instance: Mutex<GenerationInstance>,
-    changed: Notify,
+    commands: mpsc::UnboundedSender<ComponentCommand>,
 }
 
 impl GenerationComponent {
-    fn new() -> Self {
-        Self {
-            instance: Mutex::new(GenerationInstance::Activating),
-            changed: Notify::new(),
-        }
+    fn new(mut component: LiveComponent) -> Self {
+        let (commands, mut receiver) = mpsc::unbounded_channel();
+        tokio::spawn(async move {
+            while let Some(command) = receiver.recv().await {
+                match command {
+                    ComponentCommand::Activate(response) => {
+                        let _ = response.send(component.activate().await);
+                    }
+                    ComponentCommand::Dispose(response) => {
+                        let _ = response.send(component.dispose().await);
+                        break;
+                    }
+                }
+            }
+        });
+        Self { commands }
     }
 
-    fn finish_activation(&self, component: LiveComponent) {
-        let mut instance = self.instance.lock();
-        debug_assert!(matches!(*instance, GenerationInstance::Activating));
-        *instance = GenerationInstance::Active(component);
-        drop(instance);
-        self.changed.notify_waiters();
+    async fn activate(&self) -> Result<(), ComponentApplyError> {
+        let (send, receive) = oneshot::channel();
+        self.commands
+            .send(ComponentCommand::Activate(send))
+            .map_err(|_| ComponentApplyError::ActorStopped)?;
+        receive
+            .await
+            .map_err(|_| ComponentApplyError::ActorStopped)?
     }
 
     async fn dispose(&self) -> Result<(), ComponentDisposeError> {
-        loop {
-            let notified = self.changed.notified();
-            let component = {
-                let mut instance = self.instance.lock();
-                match std::mem::replace(&mut *instance, GenerationInstance::Claimed) {
-                    GenerationInstance::Activating => {
-                        *instance = GenerationInstance::Activating;
-                        None
-                    }
-                    GenerationInstance::Active(component) => Some(component),
-                    GenerationInstance::Claimed => {
-                        *instance = GenerationInstance::Claimed;
-                        return Ok(());
-                    }
-                }
-            };
-            if let Some(mut component) = component {
-                return component.dispose().await;
-            }
-            notified.await;
-        }
+        let (send, receive) = oneshot::channel();
+        self.commands
+            .send(ComponentCommand::Dispose(send))
+            .map_err(|_| ComponentDisposeError::ActorStopped)?;
+        receive
+            .await
+            .map_err(|_| ComponentDisposeError::ActorStopped)?
     }
+}
+
+enum ComponentCommand {
+    Activate(oneshot::Sender<Result<(), ComponentApplyError>>),
+    Dispose(oneshot::Sender<Result<(), ComponentDisposeError>>),
 }
 
 impl Plugin for ComponentPlugin {
@@ -291,16 +292,14 @@ impl Plugin for ComponentPlugin {
         let mut live = LiveComponent { store, bindings };
         live.describe().await?;
 
-        let generation = Arc::new(GenerationComponent::new());
+        let generation = Arc::new(GenerationComponent::new(live));
         let cleanup_generation = generation.clone();
         if let Err(error) = ctx.effect(move || async move { cleanup_generation.dispose().await }) {
-            let _ = live.dispose().await;
+            let _ = generation.dispose().await;
             return Err(error.into());
         }
 
-        let result = live.activate().await;
-        generation.finish_activation(live);
-        result
+        generation.activate().await
     }
 }
 

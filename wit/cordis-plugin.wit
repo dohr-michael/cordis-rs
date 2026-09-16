@@ -43,6 +43,7 @@ interface manifest {
   record descriptor {
     name: string,
     standard-capabilities: list<standard-capability>,
+    subscribed-events: list<string>,
   }
 
   /// Describe this Component without performing lifecycle work.
@@ -68,6 +69,14 @@ interface events {
 
   /// Deliver one event to the owning Cordis Runtime.
   emit: async func(event: event) -> result<_, event-error>;
+}
+
+/// Host-to-guest delivery for subscriptions declared in `manifest`.
+interface event-handler {
+  use events.{event, event-error};
+
+  /// Handle one event after the Component generation is active.
+  handle: async func(event: event) -> result<_, event-error>;
 }
 
 /// The guest-controlled part of one Cordis apply generation.
@@ -108,4 +117,5 @@ world cordis-plugin {
   import events;
   export lifecycle;
   export manifest;
+  export event-handler;
 }
