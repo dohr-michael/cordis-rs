@@ -113,6 +113,9 @@ pub enum ComponentApplyError {
     /// The guest rejected activation with its own diagnostic.
     #[error("guest activation rejected: {0}")]
     ActivateRejected(String),
+    /// The guest trapped while its static manifest was being read.
+    #[error("guest manifest trapped: {0}")]
+    ManifestTrap(#[source] wasmtime::Error),
     /// The generation no longer admitted the cleanup obligation.
     #[error("could not bind guest cleanup to the Cordis generation: {0}")]
     CleanupRegistration(#[from] EffectRegistrationError),
@@ -149,6 +152,20 @@ struct LiveComponent {
 }
 
 impl LiveComponent {
+    async fn describe(&mut self) -> Result<(), ComponentApplyError> {
+        self.store
+            .run_concurrent(async |accessor| {
+                self.bindings
+                    .cordis_plugin_manifest()
+                    .call_describe(accessor)
+                    .await
+            })
+            .await
+            .map_err(ComponentApplyError::ManifestTrap)?
+            .map_err(ComponentApplyError::ManifestTrap)?;
+        Ok(())
+    }
+
     async fn activate(&mut self) -> Result<(), ComponentApplyError> {
         let outcome = self
             .store
@@ -267,15 +284,16 @@ impl Plugin for ComponentPlugin {
         let bindings = CordisPlugin::instantiate_async(&mut store, &input.component, &linker)
             .await
             .map_err(ComponentApplyError::Instantiate)?;
+        let mut live = LiveComponent { store, bindings };
+        live.describe().await?;
+
         let generation = Arc::new(GenerationComponent::new());
         let cleanup_generation = generation.clone();
         if let Err(error) = ctx.effect(move || async move { cleanup_generation.dispose().await }) {
-            let mut live = LiveComponent { store, bindings };
             let _ = live.dispose().await;
             return Err(error.into());
         }
 
-        let mut live = LiveComponent { store, bindings };
         let result = live.activate().await;
         generation.finish_activation(live);
         result

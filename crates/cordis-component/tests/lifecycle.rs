@@ -39,7 +39,8 @@ async fn component_guest_activates_and_disposes_with_its_fiber() {
     let plugin = ComponentPlugin::new().expect("the local Wasmtime engine is constructible");
     let artifact = ComponentArtifact::from_bytes(
         std::fs::read(guest_component()).expect("compiled guest component is readable"),
-    );
+    )
+    .with_configuration(b"revision=v1".to_vec());
     let input = plugin.prepare(artifact).expect("guest component prepares");
     let context = Context::new();
     let logs = Arc::new(BufferExporter::new(16, Level::Debug).expect("valid log buffer"));
@@ -67,6 +68,22 @@ async fn component_guest_activates_and_disposes_with_its_fiber() {
             .count(),
         2,
         "each apply generation forwarded its activation diagnostic"
+    );
+    assert_eq!(
+        records
+            .iter()
+            .filter(|record| record.text() == "guest configuration: revision=v1")
+            .count(),
+        2,
+        "each apply generation receives the artifact configuration"
+    );
+    assert_eq!(
+        records
+            .iter()
+            .filter(|record| record.text() == "guest manifest read")
+            .count(),
+        2,
+        "each generation is described before activation"
     );
     assert_eq!(
         records

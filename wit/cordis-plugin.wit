@@ -27,6 +27,28 @@ interface configuration {
   get: async func() -> list<u8>;
 }
 
+/// Static declaration for one Cordis Component implementation.
+///
+/// This is descriptive metadata, not a general Service locator. The host reads
+/// it before lifecycle activation; later ABI revisions may map declared
+/// standards to Cordis dependency edges.
+interface manifest {
+  /// A standard host capability consumed by the guest.
+  enum standard-capability {
+    configuration,
+    diagnostics,
+  }
+
+  /// Stable guest-facing identity and declared standard capabilities.
+  record descriptor {
+    name: string,
+    standard-capabilities: list<standard-capability>,
+  }
+
+  /// Describe this Component without performing lifecycle work.
+  describe: async func() -> descriptor;
+}
+
 /// The guest-controlled part of one Cordis apply generation.
 ///
 /// One component instance represents one apply generation. Restart and
@@ -63,4 +85,5 @@ world cordis-plugin {
   import configuration;
   import diagnostics;
   export lifecycle;
+  export manifest;
 }
