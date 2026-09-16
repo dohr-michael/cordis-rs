@@ -32,8 +32,6 @@ use bindings::CordisPlugin;
 /// Standard host capabilities available to guest Components.
 mod capabilities;
 
-pub(crate) use capabilities::Diagnostics;
-
 /// A reusable Component Model Plugin factory.
 ///
 /// The factory owns one Wasmtime engine while each [`ComponentInput`] owns one
@@ -69,6 +67,7 @@ pub enum EngineError {
 #[derive(Clone)]
 pub struct ComponentArtifact {
     bytes: Arc<[u8]>,
+    configuration: Arc<[u8]>,
 }
 
 impl ComponentArtifact {
@@ -76,7 +75,14 @@ impl ComponentArtifact {
     pub fn from_bytes(bytes: impl Into<Arc<[u8]>>) -> Self {
         Self {
             bytes: bytes.into(),
+            configuration: Arc::from([]),
         }
+    }
+
+    /// Attach immutable configuration for every generation using this artifact.
+    pub fn with_configuration(mut self, bytes: impl Into<Arc<[u8]>>) -> Self {
+        self.configuration = bytes.into();
+        self
     }
 }
 
@@ -84,6 +90,7 @@ impl ComponentArtifact {
 #[derive(Clone)]
 pub struct ComponentInput {
     component: Arc<Component>,
+    configuration: Arc<[u8]>,
 }
 
 /// Failure while compiling a [`ComponentArtifact`] before lifecycle admission.
@@ -124,6 +131,7 @@ pub(crate) struct HostState {
     table: ResourceTable,
     wasi: WasiCtx,
     logger: Logger,
+    configuration: Arc<[u8]>,
 }
 
 impl WasiView for HostState {
@@ -237,6 +245,7 @@ impl Plugin for ComponentPlugin {
         Component::new(&self.engine, &artifact.bytes)
             .map(|component| ComponentInput {
                 component: Arc::new(component),
+                configuration: artifact.configuration,
             })
             .map_err(ComponentPrepareError::Compile)
     }
@@ -252,6 +261,7 @@ impl Plugin for ComponentPlugin {
                 table: ResourceTable::new(),
                 wasi: WasiCtx::builder().build(),
                 logger: ctx.logger().with_name("wasm-component"),
+                configuration: input.configuration.clone(),
             },
         );
         let bindings = CordisPlugin::instantiate_async(&mut store, &input.component, &linker)

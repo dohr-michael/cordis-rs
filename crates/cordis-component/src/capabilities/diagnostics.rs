@@ -3,27 +3,18 @@
 use std::future::Future;
 
 use cordis_core::Level;
-use wasmtime::component::{Accessor, HasData, Linker};
+use wasmtime::component::Accessor;
 
 use crate::HostState;
 use crate::bindings;
 
-/// Marker for the standard `cordis:plugin/diagnostics` host capability.
-///
-/// The adapter binds it to a component generation's host-assigned logger
-/// channel. Guests can choose severity and message, but never a channel or a
-/// logger exporter.
-pub(crate) struct Diagnostics;
-
-impl HasData for Diagnostics {
-    type Data<'a> = &'a mut HostState;
-}
-
 impl bindings::cordis::plugin::diagnostics::Host for HostState {}
 
-impl bindings::cordis::plugin::diagnostics::HostWithStore<HostState> for Diagnostics {
+impl bindings::cordis::plugin::diagnostics::HostWithStore<HostState>
+    for crate::capabilities::HostCapabilities
+{
     fn emit(
-        host: &Accessor<HostState, Self>,
+        host: &Accessor<HostState, crate::capabilities::HostCapabilities>,
         level: bindings::cordis::plugin::diagnostics::Level,
         message: String,
     ) -> impl Future<Output = ()> + Send {
@@ -38,9 +29,4 @@ impl bindings::cordis::plugin::diagnostics::HostWithStore<HostState> for Diagnos
             logger.log(level, message);
         }
     }
-}
-
-/// Add the diagnostics import implementation to a component linker.
-pub(crate) fn add_to_linker(linker: &mut Linker<HostState>) -> wasmtime::Result<()> {
-    crate::bindings::CordisPlugin::add_to_linker::<_, crate::Diagnostics>(linker, |state| state)
 }

@@ -18,6 +18,15 @@ interface diagnostics {
   emit: async func(level: level, message: string);
 }
 
+/// Immutable input selected by the host for one component generation.
+///
+/// This is not a generic Service lookup. The bytes are supplied before guest
+/// activation and are replaced only when Cordis creates a fresh generation.
+interface configuration {
+  /// Read this generation's opaque configuration payload.
+  get: async func() -> list<u8>;
+}
+
 /// The guest-controlled part of one Cordis apply generation.
 ///
 /// One component instance represents one apply generation. Restart and
@@ -51,6 +60,7 @@ interface lifecycle {
 /// current Fiber generation. Context, Events, Services, and configuration are
 /// intentionally not yet part of the ABI.
 world cordis-plugin {
+  import configuration;
   import diagnostics;
   export lifecycle;
 }
