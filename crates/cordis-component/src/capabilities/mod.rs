@@ -8,7 +8,7 @@ use wasmtime::component::{HasData, Linker};
 
 use crate::HostState;
 
-pub use events::ComponentEvent;
+pub use events::{ComponentEvent, HostEvent};
 
 /// Shared Wasmtime projection for all standard capability interfaces.
 ///

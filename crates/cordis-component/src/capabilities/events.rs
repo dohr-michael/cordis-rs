@@ -15,6 +15,29 @@ pub struct ComponentEvent {
     payload: Vec<u8>,
 }
 
+/// An event a native Cordis host delivers to subscribed guest Components.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HostEvent {
+    pub(crate) name: String,
+    pub(crate) payload: Vec<u8>,
+}
+
+impl HostEvent {
+    /// Construct one event for guest Components that declared this name.
+    pub fn new(name: impl Into<String>, payload: impl Into<Vec<u8>>) -> Self {
+        Self {
+            name: name.into(),
+            payload: payload.into(),
+        }
+    }
+}
+
+impl Event for HostEvent {
+    const NAME: &'static str = "cordis/host-event";
+    type Args = HostEvent;
+    type Output = ();
+}
+
 impl ComponentEvent {
     /// Construct one event for delivery to guest-event observers.
     pub fn new(name: impl Into<String>, payload: impl Into<Vec<u8>>) -> Self {

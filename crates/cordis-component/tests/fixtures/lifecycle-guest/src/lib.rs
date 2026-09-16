@@ -42,13 +42,14 @@ impl ManifestGuest for Component {
                 StandardCapability::Configuration,
                 StandardCapability::Diagnostics,
             ],
-            subscribed_events: Vec::new(),
+            subscribed_events: vec!["fixture/inbound".into()],
         }
     }
 }
 
 impl EventHandlerGuest for Component {
-    async fn handle(_: Event) -> Result<(), cordis::plugin::events::EventError> {
+    async fn handle(event: Event) -> Result<(), cordis::plugin::events::EventError> {
+        emit(Level::Info, format!("guest received: {}", event.name)).await;
         Ok(())
     }
 }

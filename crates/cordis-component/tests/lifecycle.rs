@@ -5,10 +5,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, OnceLock};
 
-use cordis_component::{ComponentArtifact, ComponentEvent, ComponentPlugin};
+use cordis_component::{ComponentArtifact, ComponentEvent, ComponentPlugin, HostEvent};
 use cordis_core::event::observer_sync;
 use cordis_core::logger::BufferExporter;
-use cordis_core::{Context, FiberState, Level, Plugin, PreparedPlugin};
+use cordis_core::{Context, FiberState, Level, Plugin, PreparedPlugin, Routing};
 use parking_lot::Mutex;
 
 fn guest_component() -> &'static Path {
@@ -64,9 +64,17 @@ async fn component_guest_activates_and_disposes_with_its_fiber() {
         .await
         .expect("guest component activates");
     assert_eq!(fiber.state(), FiberState::Active);
+    context
+        .emit::<HostEvent>(Routing::Unscoped, HostEvent::new("fixture/inbound", []))
+        .await
+        .expect("guest receives host event");
 
     fiber.restart().await.expect("guest component restarts");
     assert_eq!(fiber.state(), FiberState::Active);
+    context
+        .emit::<HostEvent>(Routing::Unscoped, HostEvent::new("fixture/inbound", []))
+        .await
+        .expect("restarted guest receives host event");
 
     fiber.dispose().await.expect("guest component disposes");
     assert_eq!(fiber.state(), FiberState::Disposed);
@@ -79,6 +87,13 @@ async fn component_guest_activates_and_disposes_with_its_fiber() {
             .count(),
         2,
         "each apply generation forwarded its activation diagnostic"
+    );
+    assert_eq!(
+        records
+            .iter()
+            .filter(|record| record.text() == "guest received: fixture/inbound")
+            .count(),
+        2
     );
     assert_eq!(
         records

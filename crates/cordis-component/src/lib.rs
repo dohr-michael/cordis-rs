@@ -8,6 +8,7 @@
 use std::sync::Arc;
 
 use cordis_core::effect::EffectRegistrationError;
+use cordis_core::event::{ListenerRegistrationError, observer};
 use cordis_core::{Context, Logger, Plugin};
 use thiserror::Error;
 use tokio::sync::{mpsc, oneshot};
@@ -31,7 +32,7 @@ use bindings::CordisPlugin;
 /// Standard host capabilities available to guest Components.
 mod capabilities;
 
-pub use capabilities::ComponentEvent;
+pub use capabilities::{ComponentEvent, HostEvent};
 
 /// A reusable Component Model Plugin factory.
 ///
@@ -120,6 +121,9 @@ pub enum ComponentApplyError {
     /// The guest trapped while its static manifest was being read.
     #[error("guest manifest trapped: {0}")]
     ManifestTrap(#[source] wasmtime::Error),
+    /// A declared guest event subscription could not join the generation.
+    #[error("could not register guest event subscription: {0}")]
+    Subscription(#[from] ListenerRegistrationError),
     /// The generation no longer admitted the cleanup obligation.
     #[error("could not bind guest cleanup to the Cordis generation: {0}")]
     CleanupRegistration(#[from] EffectRegistrationError),
@@ -133,6 +137,16 @@ enum ComponentDisposeError {
     #[error("guest disposal rejected: {0}")]
     Rejected(String),
     #[error("the guest component actor stopped before disposal")]
+    ActorStopped,
+}
+
+#[derive(Debug, Error)]
+enum ComponentHandleError {
+    #[error("guest event handler trapped: {0}")]
+    Trap(#[source] wasmtime::Error),
+    #[error("guest event handler rejected: {0}")]
+    Rejected(String),
+    #[error("the guest component actor stopped before event handling")]
     ActorStopped,
 }
 
@@ -159,7 +173,9 @@ struct LiveComponent {
 }
 
 impl LiveComponent {
-    async fn describe(&mut self) -> Result<(), ComponentApplyError> {
+    async fn describe(
+        &mut self,
+    ) -> Result<bindings::exports::cordis::plugin::manifest::Descriptor, ComponentApplyError> {
         self.store
             .run_concurrent(async |accessor| {
                 self.bindings
@@ -169,8 +185,7 @@ impl LiveComponent {
             })
             .await
             .map_err(ComponentApplyError::ManifestTrap)?
-            .map_err(ComponentApplyError::ManifestTrap)?;
-        Ok(())
+            .map_err(ComponentApplyError::ManifestTrap)
     }
 
     async fn activate(&mut self) -> Result<(), ComponentApplyError> {
@@ -186,6 +201,24 @@ impl LiveComponent {
             .map_err(ComponentApplyError::ActivateTrap)?
             .map_err(ComponentApplyError::ActivateTrap)?;
         outcome.map_err(|error| ComponentApplyError::ActivateRejected(error.message))
+    }
+
+    async fn handle(
+        &mut self,
+        event: bindings::cordis::plugin::events::Event,
+    ) -> Result<(), ComponentHandleError> {
+        let result = self
+            .store
+            .run_concurrent(async |accessor| {
+                self.bindings
+                    .cordis_plugin_event_handler()
+                    .call_handle(accessor, event)
+                    .await
+            })
+            .await
+            .map_err(ComponentHandleError::Trap)?
+            .map_err(ComponentHandleError::Trap)?;
+        result.map_err(|error| ComponentHandleError::Rejected(error.message))
     }
 
     async fn dispose(&mut self) -> Result<(), ComponentDisposeError> {
@@ -221,6 +254,16 @@ impl GenerationComponent {
                         let _ = response.send(component.dispose().await);
                         break;
                     }
+                    ComponentCommand::Handle { event, response } => {
+                        let _ = response.send(
+                            component
+                                .handle(bindings::cordis::plugin::events::Event {
+                                    name: event.name,
+                                    payload: event.payload,
+                                })
+                                .await,
+                        );
+                    }
                 }
             }
         });
@@ -237,6 +280,19 @@ impl GenerationComponent {
             .map_err(|_| ComponentApplyError::ActorStopped)?
     }
 
+    async fn handle(&self, event: HostEvent) -> Result<(), ComponentHandleError> {
+        let (send, receive) = oneshot::channel();
+        self.commands
+            .send(ComponentCommand::Handle {
+                event,
+                response: send,
+            })
+            .map_err(|_| ComponentHandleError::ActorStopped)?;
+        receive
+            .await
+            .map_err(|_| ComponentHandleError::ActorStopped)?
+    }
+
     async fn dispose(&self) -> Result<(), ComponentDisposeError> {
         let (send, receive) = oneshot::channel();
         self.commands
@@ -251,6 +307,10 @@ impl GenerationComponent {
 enum ComponentCommand {
     Activate(oneshot::Sender<Result<(), ComponentApplyError>>),
     Dispose(oneshot::Sender<Result<(), ComponentDisposeError>>),
+    Handle {
+        event: HostEvent,
+        response: oneshot::Sender<Result<(), ComponentHandleError>>,
+    },
 }
 
 impl Plugin for ComponentPlugin {
@@ -290,7 +350,7 @@ impl Plugin for ComponentPlugin {
             .await
             .map_err(ComponentApplyError::Instantiate)?;
         let mut live = LiveComponent { store, bindings };
-        live.describe().await?;
+        let descriptor = live.describe().await?;
 
         let generation = Arc::new(GenerationComponent::new(live));
         let cleanup_generation = generation.clone();
@@ -299,7 +359,21 @@ impl Plugin for ComponentPlugin {
             return Err(error.into());
         }
 
-        generation.activate().await
+        generation.activate().await?;
+        for name in descriptor.subscribed_events {
+            let generation = generation.clone();
+            ctx.on::<HostEvent, _>(observer(move |_, event: HostEvent| {
+                let generation = generation.clone();
+                let name = name.clone();
+                async move {
+                    if event.name == name {
+                        generation.handle(event).await?;
+                    }
+                    Ok::<_, ComponentHandleError>(())
+                }
+            }))?;
+        }
+        Ok(())
     }
 }
 
