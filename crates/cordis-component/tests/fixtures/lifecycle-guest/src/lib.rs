@@ -8,12 +8,19 @@ use exports::cordis::plugin::lifecycle::{Guest, LifecycleError};
 use exports::cordis::plugin::manifest::{Descriptor, Guest as ManifestGuest, StandardCapability};
 use cordis::plugin::configuration::get;
 use cordis::plugin::diagnostics::{Level, emit};
+use cordis::plugin::events::{Event, emit as emit_event};
 
 struct Component;
 
 impl Guest for Component {
     async fn activate() -> Result<(), LifecycleError> {
         let configuration = String::from_utf8(get().await).expect("fixture configuration is UTF-8");
+        emit_event(Event {
+            name: "fixture/activated".into(),
+            payload: configuration.as_bytes().to_vec(),
+        })
+        .await
+        .expect("host accepts fixture event");
         emit(Level::Info, format!("guest configuration: {configuration}")).await;
         emit(Level::Info, "guest lifecycle activated".into()).await;
         Ok(())
