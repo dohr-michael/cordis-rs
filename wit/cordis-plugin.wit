@@ -1,25 +1,37 @@
 package cordis:plugin@0.1.0;
 
-/// The guest-controlled part of a Cordis Fiber's lifecycle.
+/// The guest-controlled part of one Cordis apply generation.
 ///
-/// One component instance represents one Fiber. The host creates a new
-/// component instance for an era replacement; no guest-defined resource is
-/// needed to represent that identity.
+/// One component instance represents one apply generation. Restart and
+/// same-Fiber update close the current generation and create a new component
+/// instance; era replacement also creates a new Fiber. No guest-defined
+/// resource is needed to represent either identity.
 interface lifecycle {
+  /// A guest-reported lifecycle failure.
+  record lifecycle-error {
+    message: string,
+  }
+
+  /// Start this component instance's apply generation.
+  ///
+  /// The host calls this once after instantiation. A returned error prevents
+  /// the generation from becoming active and the host drops the instance.
+  activate: async func() -> result<_, lifecycle-error>;
+
   /// Finish guest-owned cleanup for this component instance.
   ///
   /// The operation is asynchronous because cleanup may await guest-owned
   /// work. It is idempotent: repeated calls must succeed after the first
   /// completed disposal. A returned error is diagnostic only; the host still
-  /// terminates its Fiber and drops the component instance.
-  dispose: async func() -> result<_, string>;
+  /// closes the generation and drops the component instance.
+  dispose: async func() -> result<_, lifecycle-error>;
 }
 
 /// The minimal Cordis component contract.
 ///
-/// This deliberately has no host imports and no activation operation yet.
-/// It establishes the teardown boundary before Context, Events, Services, or
-/// configuration become part of the ABI.
+/// This deliberately has no host imports. It establishes the activation and
+/// teardown boundary before Context, Events, Services, or configuration become
+/// part of the ABI.
 world cordis-plugin {
   export lifecycle;
 }
