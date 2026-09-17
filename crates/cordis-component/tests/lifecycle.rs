@@ -1,12 +1,14 @@
 //! Integration proof that a replacement artifact receives a fresh Fiber.
 
+use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, OnceLock};
 
-use cordis_component::{ComponentArtifact, ComponentPlugin};
+use cordis_component::{ComponentArtifact, ComponentEvent, ComponentPlugin, HostEvent};
+use cordis_core::event::observer_sync;
 use cordis_core::logger::BufferExporter;
-use cordis_core::{Context, FiberState, Level, Plugin, PreparedChange, PreparedPlugin};
+use cordis_core::{Context, FiberState, Level, Plugin, PreparedChange, PreparedPlugin, Routing};
 
 fn guest_component(fixture_name: &str, artifact_name: &str) -> PathBuf {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -71,6 +73,68 @@ fn input(plugin: &ComponentPlugin, component: &Path) -> cordis_component::Compon
 }
 
 #[tokio::test]
+async fn component_plugin_bridges_its_declared_events_and_configuration() {
+    let plugin = ComponentPlugin::new().expect("the local Wasmtime engine is constructible");
+    let artifact = ComponentArtifact::from_bytes(
+        std::fs::read(v1_component()).expect("compiled guest is readable"),
+    )
+    .with_configuration(b"revision=v1".to_vec());
+    let input = plugin.prepare(artifact).expect("guest component prepares");
+    let context = Context::new();
+    let logs = Arc::new(BufferExporter::new(16, Level::Debug).expect("valid log buffer"));
+    let _logs = context
+        .add_exporter(logs.clone())
+        .expect("root admits diagnostic exporter");
+    let events = Arc::new(parking_lot::Mutex::new(Vec::new()));
+    let observed_events = events.clone();
+    let _events = context
+        .on::<ComponentEvent, _>(observer_sync(move |_, event| {
+            observed_events.lock().push(event);
+            Ok::<_, Infallible>(())
+        }))
+        .expect("root admits Component event observer");
+
+    let fiber = context
+        .spawn(PreparedPlugin::from_input(plugin, input))
+        .await
+        .expect("guest component activates");
+    context
+        .emit::<HostEvent>(Routing::Unscoped, HostEvent::new("fixture/inbound", []))
+        .await
+        .expect("declared host event is delivered");
+    fiber.dispose().await.expect("guest component disposes");
+    context
+        .emit::<HostEvent>(Routing::Unscoped, HostEvent::new("fixture/inbound", []))
+        .await
+        .expect("post-disposal host event dispatches harmlessly");
+
+    assert_eq!(
+        *events.lock(),
+        vec![ComponentEvent::new(
+            "fixture/activated",
+            b"revision=v1".to_vec()
+        )],
+        "the guest's outbound event crosses only while its generation is active"
+    );
+    let texts = logs
+        .snapshot()
+        .into_iter()
+        .map(|record| record.text().to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        texts,
+        [
+            "guest manifest read",
+            "guest configuration: revision=v1",
+            "guest lifecycle activated",
+            "guest received: fixture/inbound",
+            "guest lifecycle disposed",
+        ],
+        "the declared subscription is removed with the Component generation"
+    );
+}
+
+#[tokio::test]
 async fn era_swap_disposes_v1_before_activating_v2_with_a_fresh_fiber() {
     let plugin = ComponentPlugin::new().expect("the local Wasmtime engine is constructible");
     let v1 = input(&plugin, v1_component());
@@ -106,7 +170,14 @@ async fn era_swap_disposes_v1_before_activating_v2_with_a_fresh_fiber() {
         .collect::<Vec<_>>();
     assert_eq!(
         texts,
-        ["v1 activate", "v1 dispose", "v2 activate", "v2 dispose"]
+        [
+            "guest manifest read",
+            "guest configuration: ",
+            "guest lifecycle activated",
+            "guest lifecycle disposed",
+            "v2 activate",
+            "v2 dispose",
+        ]
     );
 }
 

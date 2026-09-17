@@ -1,54 +1,65 @@
 package cordis:plugin@0.1.0;
 
 /// Host-owned diagnostics available to every Cordis component generation.
-///
-/// The host assigns the Runtime logger channel, so a guest cannot impersonate
-/// another Fiber. This is evidence for the lifecycle fixture, not a Service
-/// or general Context capability.
+/// This is a foundation capability, not a Cordis Service: it neither creates
+/// a dependency edge nor grants access to another Fiber's Context.
 interface diagnostics {
-  /// Semantic severity supported by Cordis's runtime logger.
-  enum level {
-    debug,
-    info,
-    warn,
-    error,
-  }
-
-  /// Emit one guest diagnostic through the owning Fiber's logger channel.
+  enum level { debug, info, warn, error }
+  /// Emit through the owning Fiber's host-assigned logger channel.
   emit: async func(level: level, message: string);
 }
 
-/// The guest-controlled part of one Cordis apply generation.
-///
-/// One component instance represents one apply generation. Restart and
-/// same-Fiber update close the current generation and create a new component
-/// instance; era replacement also creates a new Fiber. No guest-defined
-/// resource is needed to represent either identity.
-interface lifecycle {
-  /// A guest-reported lifecycle failure.
-  record lifecycle-error {
-    message: string,
+/// Immutable input selected by the host for one component generation.
+/// This is not a generic Service lookup; replacement creates a fresh generation.
+interface configuration {
+  get: async func() -> list<u8>;
+}
+
+/// Static declaration for one Cordis Component implementation.
+/// This is metadata, not a general Service locator.
+interface manifest {
+  enum standard-capability { configuration, diagnostics }
+  record descriptor {
+    name: string,
+    standard-capabilities: list<standard-capability>,
+    subscribed-events: list<string>,
   }
+  /// Describe the Component without lifecycle work.
+  describe: async func() -> descriptor;
+}
 
-  /// Start this component instance's apply generation.
-  ///
-  /// The host calls this once after instantiation. A returned error prevents
-  /// the generation from becoming active. The host then calls `dispose` once
-  /// to release the instance; guests must therefore tolerate disposal before
-  /// successful activation.
+/// Guest-originated Component events delivered through the owning Context.
+interface events {
+  record event { name: string, payload: list<u8> }
+  record event-error { message: string }
+  emit: async func(event: event) -> result<_, event-error>;
+}
+
+/// Host-to-guest delivery for subscriptions declared in `manifest`.
+interface event-handler {
+  use events.{event, event-error};
+  /// The adapter serializes delivery and never synchronously re-enters a guest.
+  handle: async func(event: event) -> result<_, event-error>;
+}
+
+/// The guest-controlled part of one Cordis apply generation.
+interface lifecycle {
+  record lifecycle-error { message: string }
+  /// Failure prevents activation; the host still calls `dispose` once.
   activate: async func() -> result<_, lifecycle-error>;
-
-  /// Finish guest-owned cleanup for this component instance.
-  ///
-  /// The operation is asynchronous because cleanup may await guest-owned
-  /// work. It is idempotent: repeated calls must succeed after the first
-  /// completed disposal. A returned error or a trap is diagnostic only; the
-  /// host still closes the generation and drops the component instance.
+  /// Idempotent guest cleanup; errors and traps cannot retain the generation.
   dispose: async func() -> result<_, lifecycle-error>;
 }
 
-/// The deliberately narrow Component Model spike contract.
+/// The Cordis Component contract for guest-owned behavior.
+/// Context, Scope, ServiceRealm, Loader, timers, Fiber control, and Runtime
+/// observation stay host-owned. Components receive only configuration,
+/// diagnostics, and declared Event delivery.
 world cordis-plugin {
+  import configuration;
   import diagnostics;
+  import events;
   export lifecycle;
+  export manifest;
+  export event-handler;
 }

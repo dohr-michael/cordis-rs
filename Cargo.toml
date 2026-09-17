@@ -13,6 +13,7 @@ members = [
     "examples/scopes_tenants",
     "examples/logging_exporters",
     "examples/chat_capstone",
+    "examples_wasm/runner",
 ]
 
 [workspace.package]
