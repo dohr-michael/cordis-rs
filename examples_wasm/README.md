@@ -17,15 +17,15 @@ host and move only their plugin behavior to Components.
 | `hello_plugin` | `hello_plugin/`: declared `ping` handler | Complete; Context dispatch and Fiber teardown remain host-owned |
 | `scopes_tenants` | None | Scope and ServiceRealm placement are Runtime behavior |
 | `logging_exporters` | `logging_exporters/`: guest diagnostics | Complete; exporters and Runtime observation remain Runtime-wide authority |
-| `worker_daemon` | Deferred | Requires a deliberately designed job capability; no generic task/timer import |
-| `gateway` | Deferred | Loader plan and update policy are host control-plane behavior |
-| `chat_capstone` | Deferred | Needs an application-specific Event contract, not generic Services/scopes |
+| `worker_daemon` | Planned timer callback behavior | Scheduler remains host-owned; Services are out of scope |
+| `gateway` | Planned request/reply route behavior | Loader plan and update policy are host control-plane behavior |
+| `chat_capstone` | Planned request/reply frontend behavior | Scope/Service topology remains host-owned |
 
 ## Rules
 
 - Each guest is a `wasm32-wasip2` Component and has no direct access to
   `cordis-core`.
-- All host authority remains in `cordis-component`; guest imports are narrow,
+- All host authority remains in `cordis-wasm`; guest imports are narrow,
   capability-oriented WIT interfaces.
 - A port must demonstrate its behavior from guest code. A native host-side
   reimplementation is not a port.
@@ -36,3 +36,6 @@ host and move only their plugin behavior to Components.
 Configuration and diagnostics are host-assigned. Events cross the boundary
 only when the guest declared a subscription in its manifest; Runtime
 mechanisms do not become guest imports.
+
+See [BOUNDARY.md](BOUNDARY.md) for the planned request/reply and timer
+capabilities, and for the explicit Services non-goal.

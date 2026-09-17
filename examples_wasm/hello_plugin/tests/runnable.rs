@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, OnceLock};
 
-use cordis_component::{ComponentArtifact, ComponentPlugin, HostEvent};
+use cordis_wasm::{ComponentArtifact, ComponentPlugin, HostEvent};
 use cordis_core::logger::BufferExporter;
 use cordis_core::{Context, Level, Plugin, PreparedPlugin, Routing};
 

@@ -1,5 +1,5 @@
 [package]
-name = "cordis-component-lifecycle-guest"
+name = "cordis-wasm-lifecycle-guest-v2"
 version = "0.0.0"
 edition = "2024"
 publish = false

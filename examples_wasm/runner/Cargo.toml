@@ -6,7 +6,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-cordis-component = { path = "../../crates/cordis-component", version = "0.3.5" }
+cordis-wasm = { path = "../../crates/cordis-wasm", version = "0.3.5" }
 cordis-core = { workspace = true }
 tokio = { workspace = true }
 

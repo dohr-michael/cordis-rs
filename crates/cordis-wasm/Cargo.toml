@@ -1,5 +1,5 @@
 [package]
-name = "cordis-component"
+name = "cordis-wasm"
 description = "Experimental WebAssembly Component Model adapter for Cordis v3"
 version.workspace = true
 edition.workspace = true

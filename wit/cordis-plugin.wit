@@ -52,9 +52,13 @@ interface lifecycle {
 }
 
 /// The Cordis Component contract for guest-owned behavior.
-/// Context, Scope, ServiceRealm, Loader, timers, Fiber control, and Runtime
+/// Context, Scope, ServiceRealm, Loader, Fiber control, and Runtime
 /// observation stay host-owned. Components receive only configuration,
 /// diagnostics, and declared Event delivery.
+///
+/// Future request/reply and timer capabilities are intentionally documented in
+/// `examples_wasm/BOUNDARY.md`, not declared here. A WIT interface joins the
+/// guest contract only with a bound host adapter and a lifecycle probe.
 world cordis-plugin {
   import configuration;
   import diagnostics;

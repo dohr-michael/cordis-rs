@@ -5,6 +5,10 @@ The runner is the native host for example Components. It creates one Cordis
 one `ComponentPlugin` generation per file. Type `quit` (or close stdin) for
 runner-controlled, reverse-order teardown.
 
+> This is a local inspection tool. It accepts arbitrary local `.wasm` files;
+> it has no signature/provenance policy or memory limiter. The narrow WIT host
+> surface does not make it a production sandbox or deployment loader.
+
 ```sh
 # Default directory: examples_wasm/modules
 cargo run -p cordis-wasm-runner

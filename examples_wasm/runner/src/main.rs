@@ -3,6 +3,11 @@
 //! The runner owns Cordis's Context and Fiber lifecycle. Guests are ordinary
 //! `cordis:plugin` Components: a `.wasm` file is one artifact, and an optional
 //! sibling `.config` file is its immutable generation input.
+//!
+//! This is a local inspection runner, not a production admission boundary: it
+//! accepts arbitrary local artifacts and has no signature/provenance policy or
+//! memory limiter. The Component host surface is narrow, but that is not a
+//! substitute for a deployment trust policy.
 
 use std::ffi::OsStr;
 use std::fs;
@@ -11,10 +16,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
 
-use cordis_component::HostEvent;
-use cordis_component::{ComponentArtifact, ComponentInput, ComponentPlugin};
 use cordis_core::logger::{Exporter, LogRecord};
 use cordis_core::{BoxError, Context, Level, Plugin, PreparedPlugin, Routing};
+use cordis_wasm::HostEvent;
+use cordis_wasm::{ComponentArtifact, ComponentInput, ComponentPlugin};
 
 const DEFAULT_MODULE_DIRECTORY: &str = "examples_wasm/modules";
 
@@ -44,6 +49,8 @@ fn module_directory() -> PathBuf {
 }
 
 fn load_modules(plugin: &ComponentPlugin, directory: &Path) -> Result<Vec<Module>, BoxError> {
+    // Directory membership is the only admission policy in this preview tool.
+    // Production loading needs explicit provenance and resource limits.
     let mut paths = fs::read_dir(directory)?
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()

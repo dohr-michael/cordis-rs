@@ -5,10 +5,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, OnceLock};
 
-use cordis_component::{ComponentArtifact, ComponentEvent, ComponentPlugin, HostEvent};
 use cordis_core::event::observer_sync;
 use cordis_core::logger::BufferExporter;
 use cordis_core::{Context, FiberState, Level, Plugin, PreparedChange, PreparedPlugin, Routing};
+use cordis_wasm::{ComponentArtifact, ComponentEvent, ComponentPlugin, HostEvent};
 
 fn guest_component(fixture_name: &str, artifact_name: &str) -> PathBuf {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -36,7 +36,7 @@ fn guest_component(fixture_name: &str, artifact_name: &str) -> PathBuf {
 fn v1_component() -> &'static Path {
     static COMPONENT: OnceLock<PathBuf> = OnceLock::new();
     COMPONENT
-        .get_or_init(|| guest_component("lifecycle-guest", "cordis_component_lifecycle_guest.wasm"))
+        .get_or_init(|| guest_component("lifecycle-guest", "cordis_wasm_lifecycle_guest.wasm"))
         .as_path()
 }
 
@@ -44,10 +44,7 @@ fn v2_component() -> &'static Path {
     static COMPONENT: OnceLock<PathBuf> = OnceLock::new();
     COMPONENT
         .get_or_init(|| {
-            guest_component(
-                "lifecycle-guest-v2",
-                "cordis_component_lifecycle_guest_v2.wasm",
-            )
+            guest_component("lifecycle-guest-v2", "cordis_wasm_lifecycle_guest_v2.wasm")
         })
         .as_path()
 }
@@ -58,13 +55,13 @@ fn non_cooperative_component() -> &'static Path {
         .get_or_init(|| {
             guest_component(
                 "lifecycle-guest-non-cooperative",
-                "cordis_component_lifecycle_guest_non_cooperative.wasm",
+                "cordis_wasm_lifecycle_guest_non_cooperative.wasm",
             )
         })
         .as_path()
 }
 
-fn input(plugin: &ComponentPlugin, component: &Path) -> cordis_component::ComponentInput {
+fn input(plugin: &ComponentPlugin, component: &Path) -> cordis_wasm::ComponentInput {
     plugin
         .prepare(ComponentArtifact::from_bytes(
             std::fs::read(component).expect("compiled guest is readable"),
