@@ -5,10 +5,9 @@ running through the `cordis:plugin` WIT runtime. It is deliberately separate:
 the native examples remain the reference for `cordis-core`, while these prove
 the guest ABI and its host adapter.
 
-The current WIT world exports only `lifecycle.activate` and
-`lifecycle.dispose`. Consequently, no native example can yet be ported without
-moving its interesting work back into the host. That would prove neither WIT
-nor the Component Model.
+The current WIT world intentionally exposes only lifecycle plus host-owned
+diagnostics. No native example can yet be ported without moving its interesting
+work back into the host. That would prove neither WIT nor the Component Model.
 
 ## Porting order
 
@@ -31,7 +30,6 @@ nor the Component Model.
   reimplementation is not a port.
 - Every guest instance still maps to exactly one Cordis apply generation.
 
-`diagnostics` is the first standard capability: the guest emits through its
-owning Fiber's host-assigned logger channel. Event support is the next ABI
-increment; once that boundary has a tested shape, `hello_plugin` becomes the
-first honest port.
+`diagnostics` is the only current capability: the guest emits through its
+owning Fiber's host-assigned logger channel. Event support is a later ABI
+increment, after the lifecycle spike has passed its replacement proof.

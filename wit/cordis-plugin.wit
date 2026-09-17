@@ -2,9 +2,9 @@ package cordis:plugin@0.1.0;
 
 /// Host-owned diagnostics available to every Cordis component generation.
 ///
-/// This is a foundation capability, not a Cordis Service: it neither creates
-/// a dependency edge nor grants access to another Fiber's Context. The host
-/// assigns the Runtime logger channel, so a guest cannot impersonate one.
+/// The host assigns the Runtime logger channel, so a guest cannot impersonate
+/// another Fiber. This is evidence for the lifecycle fixture, not a Service
+/// or general Context capability.
 interface diagnostics {
   /// Semantic severity supported by Cordis's runtime logger.
   enum level {
@@ -16,67 +16,6 @@ interface diagnostics {
 
   /// Emit one guest diagnostic through the owning Fiber's logger channel.
   emit: async func(level: level, message: string);
-}
-
-/// Immutable input selected by the host for one component generation.
-///
-/// This is not a generic Service lookup. The bytes are supplied before guest
-/// activation and are replaced only when Cordis creates a fresh generation.
-interface configuration {
-  /// Read this generation's opaque configuration payload.
-  get: async func() -> list<u8>;
-}
-
-/// Static declaration for one Cordis Component implementation.
-///
-/// This is descriptive metadata, not a general Service locator. The host reads
-/// it before lifecycle activation; later ABI revisions may map declared
-/// standards to Cordis dependency edges.
-interface manifest {
-  /// A standard host capability consumed by the guest.
-  enum standard-capability {
-    configuration,
-    diagnostics,
-  }
-
-  /// Stable guest-facing identity and declared standard capabilities.
-  record descriptor {
-    name: string,
-    standard-capabilities: list<standard-capability>,
-    subscribed-events: list<string>,
-  }
-
-  /// Describe this Component without performing lifecycle work.
-  describe: async func() -> descriptor;
-}
-
-/// Guest-originated Component events delivered through the owning Context.
-///
-/// This initial boundary is outbound only. Host-to-guest subscriptions require
-/// a separately serialized callback model and are intentionally not implied by
-/// this interface.
-interface events {
-  /// One opaque Component event payload.
-  record event {
-    name: string,
-    payload: list<u8>,
-  }
-
-  /// A host refusal to deliver one event.
-  record event-error {
-    message: string,
-  }
-
-  /// Deliver one event to the owning Cordis Runtime.
-  emit: async func(event: event) -> result<_, event-error>;
-}
-
-/// Host-to-guest delivery for subscriptions declared in `manifest`.
-interface event-handler {
-  use events.{event, event-error};
-
-  /// Handle one event after the Component generation is active.
-  handle: async func(event: event) -> result<_, event-error>;
 }
 
 /// The guest-controlled part of one Cordis apply generation.
@@ -94,28 +33,22 @@ interface lifecycle {
   /// Start this component instance's apply generation.
   ///
   /// The host calls this once after instantiation. A returned error prevents
-  /// the generation from becoming active and the host drops the instance.
+  /// the generation from becoming active. The host then calls `dispose` once
+  /// to release the instance; guests must therefore tolerate disposal before
+  /// successful activation.
   activate: async func() -> result<_, lifecycle-error>;
 
   /// Finish guest-owned cleanup for this component instance.
   ///
   /// The operation is asynchronous because cleanup may await guest-owned
   /// work. It is idempotent: repeated calls must succeed after the first
-  /// completed disposal. A returned error is diagnostic only; the host still
-  /// closes the generation and drops the component instance.
+  /// completed disposal. A returned error or a trap is diagnostic only; the
+  /// host still closes the generation and drops the component instance.
   dispose: async func() -> result<_, lifecycle-error>;
 }
 
-/// The minimal Cordis component contract.
-///
-/// The host owns the imported diagnostics capability and binds it to the
-/// current Fiber generation. Context, Events, Services, and configuration are
-/// intentionally not yet part of the ABI.
+/// The deliberately narrow Component Model spike contract.
 world cordis-plugin {
-  import configuration;
   import diagnostics;
-  import events;
   export lifecycle;
-  export manifest;
-  export event-handler;
 }

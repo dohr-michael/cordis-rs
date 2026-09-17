@@ -39,6 +39,9 @@ serde_json = "1"
 trybuild = "1"
 loom = "0.7.2"
 criterion = { version = "0.8.2", default-features = false, features = ["async_tokio", "cargo_bench_support"] }
+# `async func` requires Wasmtime's current Component Model async ABI. This
+# deliberately exceeds the workspace MSRV; cordis-component must therefore not
+# remain in the published workspace until that boundary is resolved.
 wasmtime = { version = "=49.0.0-rc.1", default-features = false, features = ["anyhow", "async", "component-model", "component-model-async", "cranelift", "runtime"] }
 wasmtime-wasi = { version = "=49.0.0-rc.1", default-features = false, features = ["p2"] }
 

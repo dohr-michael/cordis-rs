@@ -239,6 +239,7 @@ version = "0.3.5"
 dependencies = [
  "cordis-core",
  "parking_lot",
+ "sha2",
  "thiserror",
  "tokio",
  "wasmtime",

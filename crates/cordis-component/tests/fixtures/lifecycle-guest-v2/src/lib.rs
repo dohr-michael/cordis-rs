@@ -7,12 +7,12 @@ struct Component;
 
 impl Guest for Component {
     async fn activate() -> Result<(), LifecycleError> {
-        emit(Level::Info, "v1 activate".into()).await;
+        emit(Level::Info, "v2 activate".into()).await;
         Ok(())
     }
 
     async fn dispose() -> Result<(), LifecycleError> {
-        emit(Level::Info, "v1 dispose".into()).await;
+        emit(Level::Info, "v2 dispose".into()).await;
         Ok(())
     }
 }
